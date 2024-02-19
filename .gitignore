@@ -1,3 +1,9 @@
 */**/.env
 node_modules
 cert
+
+*/**/test
+*/**/test.*
+
+*/**/.DS_Store
+.DS_Store
