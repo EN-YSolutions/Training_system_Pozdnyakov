@@ -84,6 +84,7 @@ app.post('/api/login', async (req, res) => {
     replacements: [username],
     type: QueryTypes.SELECT
   }))[0]
+  if (typeof data === 'undefined') return res.status(404).send({ message: 'Ошибка в логине или пароле!' })
   const test = bcrypt.compareSync(password, data.password)
   if (test === false) return res.status(401).send({ message: 'Ошибка в логине или пароле!' })
 

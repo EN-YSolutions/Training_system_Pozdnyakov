@@ -175,6 +175,11 @@ main.container-fluid {
     height: 20px;
   }
 }
+
+.emoji-popover .popover-body {
+  padding: 0;
+}
+
 .hidden {
   display: none;
 }

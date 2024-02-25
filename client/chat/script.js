@@ -1,7 +1,19 @@
 import 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js'
+import { Marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
+import 'https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js'
 import * as Utils from './utils.js'
 
 (async function() {
+  const theme = (function setTheme() {
+    const _ = document.documentElement
+    const theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    if (_.getAttribute('data-bs-theme') === theme) return
+    _.setAttribute('data-bs-theme', theme)
+    return theme
+  })();
+
+  const marked = new Marked()
+
   let self = JSON.parse(localStorage.getItem('self-data'))
   {
     const request = await fetch('/api/@me')
@@ -10,6 +22,10 @@ import * as Utils from './utils.js'
     localStorage.setItem('self-data', JSON.stringify(self))
   }
   document.querySelector('#self-avatar').src = `/avatars/${self.avatar}`
+
+  document.querySelector('#attach').addEventListener('click', () => {
+    document.querySelector('#attachments-input').click()
+  })
 
   document.body.addEventListener('keydown', event => {
     if (event.key === 'Escape') {
@@ -80,7 +96,7 @@ import * as Utils from './utils.js'
         ? Utils.timeago(Date.now() - new Date(e.created_at).getTime())
         : ''
       tem.querySelector('.last-author').innerText = e.username
-      tem.querySelector('.last-msg').innerText = e.contents || 'Сообщений нет'
+      tem.querySelector('.last-msg').innerHTML = parseMD(e.contents || 'Сообщений нет')
 
       cont.onclick = event => {
         const _t = event.currentTarget
@@ -94,7 +110,7 @@ import * as Utils from './utils.js'
         _c.querySelector('.current-title').innerText = _t.querySelector('.title').innerText
         _c.querySelector('.avatar').src = _t.querySelector('.avatar').src
         _c.querySelector('#message-input').onkeydown = event => {
-          if (event.code === 'Enter') { event.preventDefault(); sendMessage() }
+          if (event.code === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage() }
         }
         _c.querySelector('#message-send').onclick = sendMessage
 
@@ -123,7 +139,7 @@ import * as Utils from './utils.js'
     tem.querySelector('.avatar').src = `/avatars/${data.avatar}`
     tem.querySelector('.author').innerText = data.author
     tem.querySelector('.time').innerText = Utils.getMessageStamp(data.created_at)
-    tem.querySelector('.message-text').innerText = data.contents
+    tem.querySelector('.message-text').innerHTML = parseMD(data.contents)
     return cont
   }
   function sendMessage() {
@@ -146,9 +162,13 @@ import * as Utils from './utils.js'
     msg.classList.add('pending')
     msg.setAttribute('data-ticket', ticket)
     _c.append(msg)
+    Utils.scrollToBottom()
     if (_c.querySelector('.badge')) _c.querySelector('.badge').remove()
 
     input.value = ''
     input.focus()
+  }
+  function parseMD(text) {
+    return DOMPurify.sanitize(marked.parseInline(text))
   }
 })();
