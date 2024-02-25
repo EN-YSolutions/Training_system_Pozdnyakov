@@ -32,3 +32,11 @@ export function scrollToBottom() {
   const _c = document.querySelector('.contents-main')
   _c.scrollTo(0, _c.scrollHeight)
 }
+
+export function preventDefaults(event) {
+  event.preventDefault()
+  event.stopPropagation()
+}
+Element.prototype.addEventListeners = function(events, listener, options) {
+  events.split(/\s+/).forEach(event => this.addEventListener(event, listener, options))
+}

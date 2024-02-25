@@ -1,9 +1,11 @@
+import { Picker } from 'https://cdn.jsdelivr.net/npm/emoji-mart@5.5.2/+esm'
 import 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js'
 import { Marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
 import 'https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js'
 import * as Utils from './utils.js'
 
 (async function() {
+  'use strict'
   const theme = (function setTheme() {
     const _ = document.documentElement
     const theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
@@ -23,6 +25,30 @@ import * as Utils from './utils.js'
   }
   document.querySelector('#self-avatar').src = `/avatars/${self.avatar}`
 
+  const emoji_panel = new Picker({
+    data: async () => {
+      const response = await fetch('https://cdn.jsdelivr.net/npm/@emoji-mart/data')
+      return response.json()
+    },
+    onEmojiSelect: console.log,
+    locale: 'ru',
+    theme
+  })
+  console.dir(emoji_panel)
+  emoji_panel.id = 'emoji-panel'
+  // document.body.append(emoji_panel)
+  const emoji_panel_popover = new bootstrap.Popover(document.querySelector('#emojis'), {
+    html: true,
+    customClass: 'emoji-popover',
+    placement: 'top',
+    offset: [-175, 0],
+    content: emoji_panel
+  })
+  document.querySelector('#emojis').addEventListener('click', event => {
+    event.currentTarget?.popover('show')
+    emoji_panel.component.prototype.render()
+  })
+
   document.querySelector('#attach').addEventListener('click', () => {
     document.querySelector('#attachments-input').click()
   })
@@ -32,9 +58,38 @@ import * as Utils from './utils.js'
       const channel = document.querySelector('.channel.selected')
       if (!channel) return
       channel.classList.remove('selected')
-      document.querySelectorAll('.contents > div').forEach(e => e.classList.toggle('hidden'))
+      document.querySelectorAll('.contents-piece').forEach(e => e.classList.toggle('hidden'))
     }
   })
+
+  {
+    const body = document.body
+    const cont = document.querySelector('.contents')
+    body.addEventListeners('dragenter dragover dragleave drop', Utils.preventDefaults)
+    cont.addEventListeners('dragenter dragover dragleave drop', Utils.preventDefaults)
+    cont.addEventListener('dragenter', () => cont.classList.add('dropping'))
+    cont.addEventListeners('dragleave drop', e => {
+      if (!e.target.className.startsWith('contents')) return
+      cont.classList.remove('dropping')
+    })
+    cont.addEventListeners('dragend drop', event => {
+      const dataurls = []
+      const files = event.dataTransfer.files
+      for (const file of files) {
+        const reader = new FileReader()
+        reader.addEventListener('load', event => {
+          const url = event.target.result
+          dataurls.push({ type: file.type, url })
+        })
+        reader.readAsDataURL(file)
+      }
+      const timer = setInterval(() => {
+        if (dataurls.length !== files.length) return
+        console.log(dataurls)
+        clearInterval(timer)
+      }, 1000)
+    })
+  }
 
   const ws = new WebSocket(`wss://${location.host}/ws`)
   ws.onopen = () => {
@@ -104,7 +159,7 @@ import * as Utils from './utils.js'
         document.querySelectorAll('.channel').forEach(e => e.classList.remove('selected'))
         _t.classList.add('selected')
 
-        document.querySelectorAll('.contents > div').forEach(e => e.classList.remove('hidden'))
+        document.querySelectorAll('.contents-piece').forEach(e => e.classList.remove('hidden'))
         _c.querySelector('.badge').classList.add('hidden')
         _c.querySelectorAll('.messages-wrapper > *').forEach(e => e.remove())
         _c.querySelector('.current-title').innerText = _t.querySelector('.title').innerText

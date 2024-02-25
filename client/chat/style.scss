@@ -100,8 +100,40 @@ main.container-fluid {
 }
 
 .contents {
+  position: relative;
   display: flex;
   flex-direction: column;
+
+  .drop-here {
+    --border-gap: .75rem;
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background: var(--bs-body-bg);
+    text-align: center;
+    border: 4px var(--bs-border-color) dashed;
+    padding: var(--border-gap);
+    margin: var(--border-gap);
+    outline: var(--border-gap) var(--bs-body-bg) solid;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+
+    &__text {
+      font-weight: bold;
+      margin: 0;
+    }
+  }
+
+  &.dropping .drop-here {
+    display: flex;
+  }
+  &.dropping  * {
+    pointer-events: none;
+    user-select: none;
+  }
 
   .badge, .spinner {
     margin: auto;
