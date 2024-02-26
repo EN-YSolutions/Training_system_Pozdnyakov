@@ -12,8 +12,9 @@ import compression from 'compression'
 import { createHash } from 'crypto'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
-import * as Misc from './Misc.js'
 import Identicon from 'identicon.js'
+import multer from 'multer'
+import * as Misc from './Misc.js'
 
 console.log(`Creating process with PID ${process.pid}`)
 dotenv.config()
@@ -32,6 +33,7 @@ app.use(cookieParser())
 app.use(compression())
 server.listen(PORT, HOST, () => console.log(`Listening on https://${HOST}:${PORT}/`))
 
+const uploader = multer({ dest: './attachments' })
 const db = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
@@ -123,6 +125,15 @@ app.get('/api/@me', async (req, res) => {
     )
   })
 })
+app.put('/api/attach', uploader.array('files'), async (req, res) => {
+  if (typeof req.cookies['auth-token'] === 'undefined') return res.sendStatus(401)
+
+  const token_data = await Misc.resolveJWT(req.cookies['auth-token'])
+  if (token_data === null) return res.status(401).send({ message: 'Токен имеет недействительную подпись!' })
+  if (Date.now() > token_data.exp * 1000) return res.status(401).send({ message: 'Срок действия токена истек!' })
+
+  res.sendStatus(503)
+})
 
 app.get('/avatars/:hash', (req, res) => {
   const { hash } = req.params
@@ -144,8 +155,8 @@ app.get('/chat/', (req, res, next) => {
   if (typeof req.cookies['auth-token'] === 'undefined') return res.redirect(303, '/')
   next()
 })
-app.get('/*.css', (req, res) => {
-  const path = resolvePath(`../client${req.path.slice(0, -4)}.scss`)
+app.get('/*.scss', (req, res) => {
+  const path = resolvePath(`../client${req.path}`)
   if (!existsSync(path)) return res.sendStatus(404)
   const compiled = sass.compile(path, { style: 'compressed' })
   res.status(200).setHeader('content-type', 'text/css')

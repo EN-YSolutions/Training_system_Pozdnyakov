@@ -15,6 +15,11 @@ import * as Utils from './utils.js'
   })();
 
   const marked = new Marked()
+  const MARKUP_BINDS = {
+    KeyB: 'bold', KeyI: 'italic',
+    KeyS: 'strike', KeyM: 'mono',
+    KeyL: 'link'
+  }
 
   let self = JSON.parse(localStorage.getItem('self-data'))
   {
@@ -25,12 +30,23 @@ import * as Utils from './utils.js'
   }
   document.querySelector('#self-avatar').src = `/avatars/${self.avatar}`
 
+  {
+    const el = document.createElement('link')
+    el.href = `../helpers/prism.${theme === 'dark' ? 'dark.' : ''}css`
+    el.type = 'text/css'
+    el.rel = 'stylesheet'
+    document.head.append(el)
+  }
+
   const emoji_panel = new Picker({
-    data: async () => {
+    async data() {
       const response = await fetch('https://cdn.jsdelivr.net/npm/@emoji-mart/data')
       return response.json()
     },
-    onEmojiSelect: console.log,
+    onEmojiSelect(emoji) {
+      console.log(emoji)
+      document.querySelector('#message-input').value += emoji.native
+    },
     locale: 'ru',
     theme
   })
@@ -45,8 +61,10 @@ import * as Utils from './utils.js'
     content: emoji_panel
   })
   document.querySelector('#emojis').addEventListener('click', event => {
-    event.currentTarget?.popover('show')
-    emoji_panel.component.prototype.render()
+    if (typeof event.currentTarget.popover !== 'undefined') {
+      event.currentTarget.popover('show')
+      emoji_panel.component.prototype.render()
+    }
   })
 
   document.querySelector('#attach').addEventListener('click', () => {
@@ -59,6 +77,12 @@ import * as Utils from './utils.js'
       if (!channel) return
       channel.classList.remove('selected')
       document.querySelectorAll('.contents-piece').forEach(e => e.classList.toggle('hidden'))
+    }
+  })
+  document.querySelector('#message-input').addEventListener('keydown', event => {
+    if ((event.metaKey || event.ctrlKey) && MARKUP_BINDS[event.code]) {
+      event.preventDefault()
+      addMarkup(MARKUP_BINDS[event.code])
     }
   })
 
@@ -151,7 +175,7 @@ import * as Utils from './utils.js'
         ? Utils.timeago(Date.now() - new Date(e.created_at).getTime())
         : ''
       tem.querySelector('.last-author').innerText = e.username
-      tem.querySelector('.last-msg').innerHTML = parseMD(e.contents || 'Сообщений нет')
+      tem.querySelector('.last-msg').innerHTML = parseMD(e.contents || 'Сообщений нет', true)
 
       cont.onclick = event => {
         const _t = event.currentTarget
@@ -190,11 +214,13 @@ import * as Utils from './utils.js'
   function makeMessage(data) {
     const tem = document.getElementById('temp-message').cloneNode(true).content
     const cont = tem.querySelector('.message')
+    const text = tem.querySelector('.message-text')
     cont.setAttribute('data-id', data.id)
     tem.querySelector('.avatar').src = `/avatars/${data.avatar}`
     tem.querySelector('.author').innerText = data.author
     tem.querySelector('.time').innerText = Utils.getMessageStamp(data.created_at)
-    tem.querySelector('.message-text').innerHTML = parseMD(data.contents)
+    text.innerHTML = parseMD(data.contents)
+    Prism.highlightAllUnder(text)
     return cont
   }
   function sendMessage() {
@@ -223,7 +249,27 @@ import * as Utils from './utils.js'
     input.value = ''
     input.focus()
   }
-  function parseMD(text) {
-    return DOMPurify.sanitize(marked.parseInline(text))
+  function parseMD(text, inline = false) {
+    return DOMPurify.sanitize(inline ? marked.parseInline(text) : marked.parse(text))
+  }
+  function addMarkup(type) {
+    const field = document.querySelector('#message-input')
+    const sel_start = field.selectionStart
+    const sel_end = field.selectionEnd
+    const selection = field.value.slice(sel_start, sel_end)
+    let str = ''
+    let offset = 1
+    switch (type) {
+      case 'bold': str = `**$1**`; offset = 2; break
+      case 'italic': str = `_$1_`; break
+      case 'strike': str = `~$1~`; break
+      case 'mono': str = `\`$1\``; break
+      case 'link': str = `[$1](https://)`; break
+      default: offset = 0
+    }
+    field.value = field.value.slice(0, sel_start) + str.replace('$1', selection) + field.value.slice(sel_end)
+    field.focus()
+    field.selectionStart = sel_start + offset
+    field.selectionEnd = sel_end + offset
   }
 })();
