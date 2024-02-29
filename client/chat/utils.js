@@ -40,3 +40,8 @@ export function preventDefaults(event) {
 Element.prototype.addEventListeners = function(events, listener, options) {
   events.split(/\s+/).forEach(event => this.addEventListener(event, listener, options))
 }
+Element.prototype.takeNthParent = function(n) {
+  let ref = this
+  for (let i = 0; i < n; i++) ref = ref.parentElement
+  return ref
+}

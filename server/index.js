@@ -231,6 +231,20 @@ ws.on('connection', con => {
             author: message.name
           }))
         })
+        break
+      }
+      case 'MSG_DELETE': {
+        await db.query(`delete from messages where id = ?;`, {
+          replacements: [data.message],
+          type: QueryTypes.DELETE
+        })
+        ;[...ws.clients].forEach(f => {
+          f.send(JSON.stringify({
+            event: 'MSG_DELETE',
+            message: data.message
+          }))
+        })
+        break
       }
     }
   })

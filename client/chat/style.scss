@@ -72,7 +72,7 @@ main.container-fluid {
     --avatar-border-color: var(--bs-border-color);
     transition: border-color .2s linear;
   }
-  .time {
+  time {
     font-size: .8em;
   }
   .title, .last-author, .last-msg {
@@ -176,6 +176,9 @@ main.container-fluid {
 }
 
 .message {
+  $manage-delay: .25s;
+  $manage-duration: .35s;
+
   border-block-start: 1px var(--bs-border-color) solid;
   padding: .25rem .25rem 0;
   margin-block-start: .25rem;
@@ -185,12 +188,29 @@ main.container-fluid {
     animation: pending-pulse 5s linear infinite normal;
   }
 
-  .time {
+  &-manage {
+    float: inline-end;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity $manage-duration, visibility 0s $manage-duration;
+
+    .dropdown-toggle:after {
+      display: none;
+    }
+  }
+
+  &:hover &-manage {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity $manage-duration $manage-delay;
+  }
+
+  time {
     font-size: .7em;
     opacity: .6;
   }
 
-  &-text {
+  &-text p:last-child {
     margin: 0;
   }
 }

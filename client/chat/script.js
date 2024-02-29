@@ -115,6 +115,14 @@ import * as Utils from './utils.js'
     })
   }
 
+  setInterval(function updateTimeago() {
+    document.querySelectorAll('.timeago[datetime]').forEach(element => {
+      const now = Date.now()
+      const ms = new Date(element.dateTime).getTime()
+      element.innerText = isNaN(ms) ? '—' : Utils.timeago(now - ms)
+    })
+  }, 60000)
+
   const ws = new WebSocket(`wss://${location.host}/ws`)
   ws.onopen = () => {
     console.log('Socket is online')
@@ -157,6 +165,19 @@ import * as Utils from './utils.js'
           Utils.scrollToBottom()
           break
         }
+        case 'MSG_DELETE': {
+          const msg = document.querySelector(`.message[data-id="${data.message}"]`)
+          if (msg === null) return
+          msg.remove()
+          if (!document.querySelectorAll('.message').length) {
+            const wrp = document.querySelector('.messages-wrapper')
+            const badge = document.createElement('div')
+            badge.className = 'empty-channel-badge badge bg-secondary'
+            badge.innerText = 'В этом канале нет сообщений...'
+            wrp.append(badge)
+          }
+          break
+        }
       }
     }
     ws.onclose = event => {
@@ -171,7 +192,8 @@ import * as Utils from './utils.js'
       cont.setAttribute('data-id', e.channel_id)
       tem.querySelector('.avatar').src = `/avatars/${e.avatar}`
       tem.querySelector('.title').innerText = e.title
-      tem.querySelector('.time').innerText = e.created_at
+      if (e.created_at) tem.querySelector('time').dateTime = new Date(e.created_at).toISOString()
+      tem.querySelector('time').innerText = e.created_at
         ? Utils.timeago(Date.now() - new Date(e.created_at).getTime())
         : ''
       tem.querySelector('.last-author').innerText = e.username
@@ -216,9 +238,17 @@ import * as Utils from './utils.js'
     const cont = tem.querySelector('.message')
     const text = tem.querySelector('.message-text')
     cont.setAttribute('data-id', data.id)
+    tem.querySelector('[data-act="delete"]').addEventListener('click', event => {
+      event.currentTarget.setAttribute('disabled', '')
+      ws.send(JSON.stringify({
+        event: 'MSG_DELETE',
+        message: event.currentTarget.takeNthParent(4).getAttribute('data-id')
+      }))
+    })
     tem.querySelector('.avatar').src = `/avatars/${data.avatar}`
     tem.querySelector('.author').innerText = data.author
-    tem.querySelector('.time').innerText = Utils.getMessageStamp(data.created_at)
+    tem.querySelector('time').dateTime = new Date(data.created_at).toISOString()
+    tem.querySelector('time').innerText = Utils.getMessageStamp(data.created_at)
     text.innerHTML = parseMD(data.contents)
     Prism.highlightAllUnder(text)
     return cont
