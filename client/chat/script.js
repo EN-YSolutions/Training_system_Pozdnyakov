@@ -159,14 +159,22 @@ import * as Utils from './utils.js'
           msg.removeAttribute('data-ticket')
           break
         }
+        case 'RAW_MESSAGE': {
+          const input = document.querySelector('#message-input')
+          input.value = data.contents
+          input.setAttribute('data-edit-id', data.id)
+          document.querySelector(`.message[data-id="${data.id}"]`).classList.add('editing')
+          break
+        }
         case 'NEW_MESSAGE': {
           if (data.channel !== document.querySelector('.channel.selected')?.getAttribute('data-id')) return
           document.querySelector('.messages-wrapper').append(makeMessage(data))
           Utils.scrollToBottom()
           break
         }
-        case 'MSG_DELETE': {
-          const msg = document.querySelector(`.message[data-id="${data.message}"]`)
+        case 'DELETE': {
+          if (data.type !== 'MESSAGE') return
+          const msg = document.querySelector(`.message[data-id="${data.target}"]`)
           if (msg === null) return
           msg.remove()
           if (!document.querySelectorAll('.message').length) {
@@ -176,6 +184,17 @@ import * as Utils from './utils.js'
             badge.innerText = 'В этом канале нет сообщений...'
             wrp.append(badge)
           }
+          break
+        }
+        case 'EDIT': {
+          if (data.type !== 'MESSAGE') return
+          const msg = document.querySelector(`.message[data-id="${data.target}"]`)
+          console.log(msg)
+          if (msg === null) return
+          msg.classList.remove('pending')
+          msg.classList.add('edited')
+          msg.querySelector('.message-text').innerHTML = parseMD(data.text)
+          msg.querySelector('.message-manage [data-act="edit"]').removeAttribute('disabled')
           break
         }
       }
@@ -211,9 +230,9 @@ import * as Utils from './utils.js'
         _c.querySelector('.current-title').innerText = _t.querySelector('.title').innerText
         _c.querySelector('.avatar').src = _t.querySelector('.avatar').src
         _c.querySelector('#message-input').onkeydown = event => {
-          if (event.code === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage() }
+          if (event.code === 'Enter' && !event.shiftKey) { event.preventDefault(); publishMessage() }
         }
-        _c.querySelector('#message-send').onclick = sendMessage
+        _c.querySelector('#message-send').onclick = publishMessage
 
         const spinner = document.createElement('div')
         spinner.className = 'spinner spinner-border'
@@ -238,44 +257,69 @@ import * as Utils from './utils.js'
     const cont = tem.querySelector('.message')
     const text = tem.querySelector('.message-text')
     cont.setAttribute('data-id', data.id)
-    tem.querySelector('[data-act="delete"]').addEventListener('click', event => {
-      event.currentTarget.setAttribute('disabled', '')
-      ws.send(JSON.stringify({
-        event: 'MSG_DELETE',
-        message: event.currentTarget.takeNthParent(4).getAttribute('data-id')
-      }))
-    })
+    if (data.edited_at) cont.classList.add('edited')
     tem.querySelector('.avatar').src = `/avatars/${data.avatar}`
     tem.querySelector('.author').innerText = data.author
     tem.querySelector('time').dateTime = new Date(data.created_at).toISOString()
     tem.querySelector('time').innerText = Utils.getMessageStamp(data.created_at)
     text.innerHTML = parseMD(data.contents)
     Prism.highlightAllUnder(text)
+
+    tem.querySelector('[data-act="edit"]').addEventListener('click', event => {
+      event.currentTarget.setAttribute('disabled', '')
+      ws.send(JSON.stringify({
+        event: 'RAW_MESSAGE',
+        message: event.currentTarget.takeNthParent(4).getAttribute('data-id')
+      }))
+    })
+    tem.querySelector('[data-act="delete"]').addEventListener('click', event => {
+      event.currentTarget.setAttribute('disabled', '')
+      ws.send(JSON.stringify({
+        event: 'DELETE',
+        type: 'MESSAGE',
+        target: +event.currentTarget.takeNthParent(4).getAttribute('data-id')
+      }))
+    })
+
     return cont
   }
-  function sendMessage() {
+  function publishMessage() {
     const input = document.querySelector('#message-input')
     if (!input.value.length) return
     const _c = document.querySelector('.messages-wrapper')
-    const ticket = 'x'.repeat(16).replace(/x/g, () => Math.floor(Math.random() * 36).toString(36))
-    ws.send(JSON.stringify({
-      event: 'MESSAGE',
-      channel_id: document.querySelector('.channel.selected').getAttribute('data-id'),
-      text: input.value.slice(0, 1024),
-      ticket
-    }))
-    const msg = makeMessage({
-      avatar: self.avatar,
-      author: self.name,
-      created_at: Date.now(),
-      contents: input.value.slice(0, 1024)
-    })
-    msg.classList.add('pending')
-    msg.setAttribute('data-ticket', ticket)
-    _c.append(msg)
-    Utils.scrollToBottom()
-    if (_c.querySelector('.badge')) _c.querySelector('.badge').remove()
-
+    const text = input.value.slice(0, 1024)
+    if (input.hasAttribute('data-edit-id')) { // редактирование
+      const id = +input.getAttribute('data-edit-id')
+      ws.send(JSON.stringify({
+        event: 'EDIT',
+        type: 'MESSAGE',
+        target: id,
+        text
+      }))
+      input.removeAttribute('data-edit-id')
+      const msg = document.querySelector(`.message[data-id="${id}"]`)
+      msg.classList.remove('editing')
+      msg.classList.add('pending')
+    } else { // отправка
+      const ticket = 'x'.repeat(16).replace(/x/g, () => Math.floor(Math.random() * 36).toString(36))
+      ws.send(JSON.stringify({
+        event: 'MESSAGE',
+        channel_id: document.querySelector('.channel.selected').getAttribute('data-id'),
+        text,
+        ticket
+      }))
+      const msg = makeMessage({
+        avatar: self.avatar,
+        author: self.name,
+        created_at: Date.now(),
+        contents: text
+      })
+      msg.classList.add('pending')
+      msg.setAttribute('data-ticket', ticket)
+      _c.append(msg)
+      Utils.scrollToBottom()
+      if (_c.querySelector('.badge')) _c.querySelector('.badge').remove()
+    }
     input.value = ''
     input.focus()
   }

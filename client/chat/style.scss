@@ -187,6 +187,9 @@ main.container-fluid {
     opacity: .25;
     animation: pending-pulse 5s linear infinite normal;
   }
+  &.editing {
+    background: rgba(var(--bs-warning-rgb), .1);
+  }
 
   &-manage {
     float: inline-end;
@@ -205,6 +208,12 @@ main.container-fluid {
     transition: opacity $manage-duration $manage-delay;
   }
 
+  &.edited &-head:after {
+    content: '(изм.)';
+    font-style: italic;
+    font-size: .7em;
+    opacity: .6;
+  }
   time {
     font-size: .7em;
     opacity: .6;

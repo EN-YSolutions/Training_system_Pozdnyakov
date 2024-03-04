@@ -200,7 +200,7 @@ ws.on('connection', con => {
         break
       }
       case 'CHANNEL': {
-        const messages = await db.query(`select id, (select "name" from users where id = author) author, encode(sha256(convert_to(author::text, 'UTF-8')), 'hex') avatar, contents, created_at from messages where channel = ? order by created_at desc, id desc limit 50;`, {
+        const messages = await db.query(`select *, (select "name" from users where id = author) author, encode(sha256(convert_to(author::text, 'UTF-8')), 'hex') avatar from messages where channel = ? order by created_at desc, id desc limit 50;`, {
           replacements: [data.channel_id],
           type: QueryTypes.SELECT
         })
@@ -233,16 +233,36 @@ ws.on('connection', con => {
         })
         break
       }
-      case 'MSG_DELETE': {
-        await db.query(`delete from messages where id = ?;`, {
+      case 'RAW_MESSAGE': {
+        const message = (await db.query('select id, channel, contents from messages where id = ?;', {
           replacements: [data.message],
+          type: QueryTypes.SELECT
+        }))[0]
+        con.send(JSON.stringify({
+          event: 'RAW_MESSAGE',
+          ...message
+        }))
+        break
+      }
+      case 'DELETE': {
+        if (data.type !== 'MESSAGE') return
+        await db.query(`delete from messages where id = ?;`, {
+          replacements: [data.target],
           type: QueryTypes.DELETE
         })
         ;[...ws.clients].forEach(f => {
-          f.send(JSON.stringify({
-            event: 'MSG_DELETE',
-            message: data.message
-          }))
+          f.send(JSON.stringify(data))
+        })
+        break
+      }
+      case 'EDIT': {
+        if (data.type !== 'MESSAGE') return
+        await db.query(`update messages set contents = ?, edited_at = current_timestamp where id = ?;`, {
+          replacements: [data.text, data.target],
+          type: QueryTypes.UPDATE
+        })
+        ;[...ws.clients].forEach(f => {
+          f.send(JSON.stringify(data))
         })
         break
       }
