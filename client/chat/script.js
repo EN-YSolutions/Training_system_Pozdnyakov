@@ -72,7 +72,27 @@ import * as Utils from './utils.js'
   })
 
   document.body.addEventListener('keydown', event => {
-    if (event.key === 'Escape') {
+    if (event.code === 'ArrowUp') {
+      const channel = document.querySelector('.channel.selected')
+      if (!channel) return
+      const msg = [...document.querySelectorAll('.message')].at(-1)
+      msg.querySelector('[data-act="edit"]').setAttribute('disabled', '')
+      ws.send(JSON.stringify({
+        event: 'RAW_MESSAGE',
+        message: +msg.getAttribute('data-id')
+      }))
+    }
+
+    if (event.code === 'Escape') {
+      const input = document.querySelector('#message-input')
+      if (input.hasAttribute('data-edit-id')) {
+        const msg = document.querySelector(`.message[data-id="${input.getAttribute('data-edit-id')}"]`)
+        msg.classList.remove('editing')
+        input.value = ''
+        input.removeAttribute('data-edit-id')
+        return
+      }
+
       const channel = document.querySelector('.channel.selected')
       if (!channel) return
       channel.classList.remove('selected')
@@ -121,7 +141,7 @@ import * as Utils from './utils.js'
       const ms = new Date(element.dateTime).getTime()
       element.innerText = isNaN(ms) ? '—' : Utils.timeago(now - ms)
     })
-  }, 60000)
+  }, 10000)
 
   const ws = new WebSocket(`wss://${location.host}/ws`)
   ws.onopen = () => {
@@ -162,6 +182,7 @@ import * as Utils from './utils.js'
         case 'RAW_MESSAGE': {
           const input = document.querySelector('#message-input')
           input.value = data.contents
+          input.focus()
           input.setAttribute('data-edit-id', data.id)
           document.querySelector(`.message[data-id="${data.id}"]`).classList.add('editing')
           break
@@ -197,12 +218,64 @@ import * as Utils from './utils.js'
           msg.querySelector('.message-manage [data-act="edit"]').removeAttribute('disabled')
           break
         }
+        case 'MEMBERS': {
+          const modal = document.querySelector('#modal-members')
+          const bs_modal = bootstrap.Modal.getOrCreateInstance(modal)
+          modal.querySelector('#members__count').innerText = data.members.length
+          for (const member of data.members) {
+            const tem = document.querySelector('#temp-member').cloneNode(true).content
+            const group = Utils.USER_GROUPS[member.role]
+            tem.querySelector('.member').setAttribute('data-id', member.id)
+            tem.querySelector('.avatar').src = `/avatars/${member.avatar}`
+            tem.querySelector('.member-name').innerText = member.name
+            tem.querySelector('.member-group').innerText = group.icon
+            tem.querySelector('.member-group').title = group.name
+            tem.querySelector('.member-messages').innerText = Utils.xplural(member.messages, ['сообщение', 'сообщения', 'сообщений'])
+            tem.querySelector('.member-joined').dateTime = member.joined_at
+            tem.querySelector('.member-joined').innerText = Utils.getMessageStamp(member.joined_at)
+            modal.querySelector('.modal-body').append(tem)
+          }
+          bs_modal.show()
+        }
       }
     }
     ws.onclose = event => {
       console.log('Socket closed:', event.code)
+
+      const toast = document.createElement('div')
+      toast.className = 'toast'
+      toast.id = 'toast-ws-closed'
+      toast.setAttribute('data-bs-autohide', false)
+      toast.innerHTML = String.prototype.concat(
+        `<div class="toast-header">`,
+          `<strong class="me-auto">Сервер отключился!</strong>`,
+          `<time class="timeago" datetime="${new Date().toISOString()}">сейчас</time>`,
+          `<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>`,
+        `</div>`,
+        `<div class="toast-body">Код закрытия: ${event.code}</div>`,
+      )
+      document.querySelector('.toast-container').append(toast)
+      bootstrap.Toast.getOrCreateInstance(toast).show()
+      toast.addEventListener('hidden.bs.toast', e => e.currentTarget.remove())
     }
   }
+
+  document.querySelector('.contents-manage [data-act="members"]').addEventListener('click', event => {
+    const channel_id = document.querySelector('.channel.selected')?.getAttribute('data-id')
+    if (typeof channel_id === 'undefined') return
+    event.currentTarget.setAttribute('disabled', '')
+    ws.send(JSON.stringify({
+      event: 'MEMBERS',
+      channel: channel_id
+    }))
+  })
+  document.querySelector('#modal-members').addEventListener('hidden.bs.modal', event => {
+    console.log(event)
+    const _ = event.currentTarget
+    document.querySelector('.contents-manage [data-act="members"]').removeAttribute('disabled')
+    _.querySelectorAll('.member').forEach(el => el.remove())
+    _.querySelectorAll('#members__count').innerText = '?'
+  })
 
   function buildChannelList(list) {
     list.forEach(e => {

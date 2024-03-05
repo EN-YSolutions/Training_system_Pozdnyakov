@@ -5,6 +5,13 @@ const WEEK = 7 * DAY
 const MONTH = 30 * DAY
 const YEAR = 365 * DAY
 
+export const USER_GROUPS = {
+  student: { icon: '✏️', name: 'Студент' },
+  teacher: { icon: '📚', name: 'Преподаватель' },
+  curator: { icon: '🎓', name: 'Куратор' },
+  admin: { icon: '👑', name: 'Администратор' }
+}
+
 export function timeago(ms) {
   if (ms >= YEAR) return `${Math.floor(ms / YEAR)}г`
   else if (ms >= MONTH) return `${Math.floor(ms / MONTH)}мес`
@@ -26,6 +33,19 @@ export function getMessageStamp(raw) {
   else if (n.getFullYear() !== d.getFullYear()) date = d.toLocaleString('ru', { year: 'numeric', month: 'long', day: 'numeric' })
   else date = d.toLocaleString('ru', { month: 'long', day: 'numeric' })
   return `${date} в ${d.toLocaleTimeString('ru')}`
+}
+
+export function plural(x, forms) {
+  const z = x % 10
+  const y = x % 100
+  if (11 <= y && y <= 19) return forms[2]
+  else if (z === 1) return forms[0]
+  else if (2 <= z && z <= 4) return forms[1]
+  else return forms[2]
+}
+
+export function xplural(x, forms) {
+  return `${x}\u00a0${plural(x, forms)}`
 }
 
 export function scrollToBottom() {

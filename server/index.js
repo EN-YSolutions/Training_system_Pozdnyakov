@@ -266,6 +266,16 @@ ws.on('connection', con => {
         })
         break
       }
+      case 'MEMBERS': {
+        const members = await db.query(`select us.id, us."name", encode(sha256(convert_to(us.id::text, 'UTF-8')), 'hex') avatar, us."role", cm.joined_at, (select count(1)::int from messages ms where ms.author = us.id and ms.channel = :id) messages from channel_members cm inner join users us on us.id = cm."user" where cm.channel = :id;`, {
+          replacements: { id: data.channel },
+          type: QueryTypes.SELECT
+        })
+        con.send(JSON.stringify({
+          event: 'MEMBERS',
+          members
+        }))
+      }
     }
   })
 })
