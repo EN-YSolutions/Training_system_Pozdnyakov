@@ -190,7 +190,8 @@ ws.on('connection', con => {
         if (token_data.sub !== data.id) return con.close(0x1002)
         con._USERID = token_data.sub
 
-        const channels = await db.query(`select chan.id channel_id, chan.title, encode(sha256(convert_to(chan.id::text, 'UTF-8')), 'hex') avatar, msg.id message_id, msg.contents, coalesce(msg.created_at, '-Infinity') created_at, usr.id author, usr."name" username from channels chan left join lateral (select * from messages where channel = chan.id order by id desc limit 1) msg on msg.channel = chan.id left join lateral (select * from users where id = msg.author) usr on usr.id = msg.author where is_static order by created_at desc, title asc;`, {
+        const channels = await db.query(`SELECT chan.id channel_id, chan.title, encode(sha256(convert_to(chan.id::text, 'UTF-8')), 'hex') avatar, msg.id message_id, msg.contents, coalesce(msg.created_at, '-Infinity') created_at, usr.id author, usr."name" username, (select count(1) from messages where created_at > coalesce((select last_view from acknowledgements where "user" = ? and channel = chan.id), 'epoch') and channel = chan.id)::int unread from channels chan left join lateral (select * from messages where channel = chan.id order by id desc limit 1) msg on msg.channel = chan.id left join lateral (select * from users where id = msg.author) usr on usr.id = msg.author where is_static order by created_at desc, title asc;`, {
+          replacements: [con._USERID],
           type: QueryTypes.SELECT
         })
         con.send(JSON.stringify({
@@ -274,6 +275,16 @@ ws.on('connection', con => {
         con.send(JSON.stringify({
           event: 'MEMBERS',
           members
+        }))
+      }
+      case 'ACKNOWLEDGEMENT': {
+        await db.query(`insert into acknowledgements ("user", channel) values (?) on conflict ("user", channel) do update set last_view = current_timestamp;`, {
+          replacements: [[con._USERID, data.channel]],
+          type: QueryTypes.UPDATE
+        })
+        con.send(JSON.stringify({
+          event: 'ACKNOWLEDGEMENT',
+          ok: ''
         }))
       }
     }

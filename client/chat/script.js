@@ -219,23 +219,8 @@ import * as Utils from './utils.js'
           break
         }
         case 'MEMBERS': {
-          const modal = document.querySelector('#modal-members')
-          const bs_modal = bootstrap.Modal.getOrCreateInstance(modal)
-          modal.querySelector('#members__count').innerText = data.members.length
-          for (const member of data.members) {
-            const tem = document.querySelector('#temp-member').cloneNode(true).content
-            const group = Utils.USER_GROUPS[member.role]
-            tem.querySelector('.member').setAttribute('data-id', member.id)
-            tem.querySelector('.avatar').src = `/avatars/${member.avatar}`
-            tem.querySelector('.member-name').innerText = member.name
-            tem.querySelector('.member-group').innerText = group.icon
-            tem.querySelector('.member-group').title = group.name
-            tem.querySelector('.member-messages').innerText = Utils.xplural(member.messages, ['сообщение', 'сообщения', 'сообщений'])
-            tem.querySelector('.member-joined').dateTime = member.joined_at
-            tem.querySelector('.member-joined').innerText = Utils.getMessageStamp(member.joined_at)
-            modal.querySelector('.modal-body').append(tem)
-          }
-          bs_modal.show()
+          showMembersModal(data.members)
+          break
         }
       }
     }
@@ -260,6 +245,17 @@ import * as Utils from './utils.js'
     }
   }
 
+  document.querySelector('.contents-main').addEventListener('scroll', event => {
+    const _ = event.currentTarget
+    const channel_id = document.querySelector('.channel.selected')?.getAttribute('data-id')
+    if (typeof channel_id === 'undefined') return
+    if (_.scrollTop + _.clientHeight < _.scrollHeight) return
+    ws.send(JSON.stringify({
+      event: 'ACKNOWLEDGEMENT',
+      channel: channel_id
+    }))
+  })
+
   document.querySelector('.contents-manage [data-act="members"]').addEventListener('click', event => {
     const channel_id = document.querySelector('.channel.selected')?.getAttribute('data-id')
     if (typeof channel_id === 'undefined') return
@@ -270,7 +266,6 @@ import * as Utils from './utils.js'
     }))
   })
   document.querySelector('#modal-members').addEventListener('hidden.bs.modal', event => {
-    console.log(event)
     const _ = event.currentTarget
     document.querySelector('.contents-manage [data-act="members"]').removeAttribute('disabled')
     _.querySelectorAll('.member').forEach(el => el.remove())
@@ -290,6 +285,7 @@ import * as Utils from './utils.js'
         : ''
       tem.querySelector('.last-author').innerText = e.username
       tem.querySelector('.last-msg').innerHTML = parseMD(e.contents || 'Сообщений нет', true)
+      if (e.unread) tem.querySelector('.badge').innerText = Utils.getShortNum(e.unread)
 
       cont.onclick = event => {
         const _t = event.currentTarget
@@ -319,6 +315,29 @@ import * as Utils from './utils.js'
 
       document.querySelector('.channels').append(tem)
     })
+  }
+  function showMembersModal(members) {
+    const modal = document.querySelector('#modal-members')
+    const bs_modal = bootstrap.Modal.getOrCreateInstance(modal)
+    modal.querySelector('#members__count').innerText = members.length
+    for (const member of members) {
+      const tem = document.querySelector('#temp-member').cloneNode(true).content
+      const group = Utils.USER_GROUPS[member.role]
+      tem.querySelector('.member').setAttribute('data-id', member.id)
+      tem.querySelector('.avatar').src = `/avatars/${member.avatar}`
+      tem.querySelector('.member-name').innerText = member.name
+      if (group.icon !== null) tem.querySelector('.member-group').innerHTML = String.prototype.concat(
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${group.icon[1]} 512">`,
+          `<use href="#fa-${group.icon[0]}"></use>`,
+        `</svg>`
+      )
+      tem.querySelector('.member-group').title = group.name
+      tem.querySelector('.member-messages').innerText = Utils.xplural(member.messages, ['сообщение', 'сообщения', 'сообщений'])
+      tem.querySelector('.member-joined').dateTime = member.joined_at
+      tem.querySelector('.member-joined').innerText = Utils.getMessageStamp(member.joined_at)
+      modal.querySelector('.modal-body').append(tem)
+    }
+    bs_modal.show()
   }
   function buildMessagesList(messages) {
     const wrp = document.querySelector('.messages-wrapper')

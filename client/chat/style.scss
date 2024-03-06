@@ -61,7 +61,7 @@ main.container-fluid {
   transition: background-color .2s linear;
   cursor: pointer;
   user-select: none;
-  padding: .25rem .1rem;
+  padding: .25rem;
   border-block-end: 1px var(--bs-border-color) solid;
 
   &:hover, &.selected {
@@ -74,10 +74,10 @@ main.container-fluid {
   > div {
     display: flex;
     flex-direction: column;
-    &:first-child {
-      align-items: center;
-      gap: .15rem;
-    }
+  }
+  &-left:first-child {
+    align-items: center;
+    gap: .15rem;
   }
 
   .avatar {
@@ -109,6 +109,10 @@ main.container-fluid {
   .last-msg {
     font-size: .7em;
     line-height: 1.2;
+  }
+
+  > .badge {
+    margin: auto 0;
   }
 }
 
@@ -249,8 +253,11 @@ main.container-fluid {
   }
 
   &-group {
-    font-size: .75em;
     cursor: help;
+
+    svg {
+      width: 1em;
+    }
   }
 }
 

@@ -6,10 +6,10 @@ const MONTH = 30 * DAY
 const YEAR = 365 * DAY
 
 export const USER_GROUPS = {
-  student: { icon: '✏️', name: 'Студент' },
-  teacher: { icon: '📚', name: 'Преподаватель' },
-  curator: { icon: '🎓', name: 'Куратор' },
-  admin: { icon: '👑', name: 'Администратор' }
+  student: { icon: null, name: 'Студент' },
+  teacher: { icon: ['pen-nib', 512], name: 'Преподаватель' },
+  curator: { icon: ['graduation-cap', 640], name: 'Куратор' },
+  admin: { icon: ['crown', 576], name: 'Администратор' }
 }
 
 export function timeago(ms) {
@@ -46,6 +46,15 @@ export function plural(x, forms) {
 
 export function xplural(x, forms) {
   return `${x}\u00a0${plural(x, forms)}`
+}
+
+export function getShortNum(x) {
+  const formatter = new Intl.NumberFormat('en', { maximumFractionDigits: 1 })
+  const suffixes = [[1e6, 'M'], [1e3, 'K']]
+  for (const suffix of suffixes) {
+    if (suffix[0] <= x) return formatter.format(x / suffix[0]) + suffix[1]
+  }
+  return formatter.format(x)
 }
 
 export function scrollToBottom() {
