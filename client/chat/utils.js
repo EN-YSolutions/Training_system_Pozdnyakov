@@ -1,10 +1,19 @@
+/** Число миллисекунд в минуте */
 const MINUTE = 60000
+/** Число миллисекунд в часе */
 const HOUR = 3600 * 1000
+/** Число миллисекунд в сутках */
 const DAY = 86400 * 1000
+/** Число миллисекунд в неделе */
 const WEEK = 7 * DAY
+/** Число миллисекунд в месяце */
 const MONTH = 30 * DAY
+/** Число миллисекунд в годе */
 const YEAR = 365 * DAY
 
+/**
+ * 
+ */
 export const USER_GROUPS = {
   student: { icon: null, name: 'Студент' },
   teacher: { icon: ['pen-nib', 512], name: 'Преподаватель' },
@@ -12,7 +21,13 @@ export const USER_GROUPS = {
   admin: { icon: ['crown', 576], name: 'Администратор' }
 }
 
+/**
+ * Форматирует время в относительном формате
+ * @param {number} ms время, прошедшее с момента в прошлом (в миллисекундах)
+ * @returns строку с отформатированным временем
+ */
 export function timeago(ms) {
+  // да, это можно было сделать циклом
   if (ms >= YEAR) return `${Math.floor(ms / YEAR)}г`
   else if (ms >= MONTH) return `${Math.floor(ms / MONTH)}мес`
   else if (ms >= WEEK) return `${Math.floor(ms / WEEK)}н`
@@ -22,6 +37,11 @@ export function timeago(ms) {
   else return 'сейчас'
 }
 
+/**
+ * Создает понятную дату отправки сообщения
+ * @param {string} raw временная отметка отправки сообщения
+ * @returns строка с отформатированной датой
+ */
 export function getMessageStamp(raw) {
   const n = new Date()
   const d = new Date(raw)
@@ -35,6 +55,12 @@ export function getMessageStamp(raw) {
   return `${date} в ${d.toLocaleTimeString('ru')}`
 }
 
+/**
+ * Выбирает множественную форму слова при заданном числе
+ * @param {number} x количество
+ * @param {string[]} forms формы названия предмета (`[один, несколько, много]`)
+ * @returns форма множественного числа слова
+ */
 export function plural(x, forms) {
   const z = x % 10
   const y = x % 100
@@ -44,10 +70,21 @@ export function plural(x, forms) {
   else return forms[2]
 }
 
+/**
+ * Выбирает множественную форму слова при заданном числе и печатает ее вместе с числом (см. {@link plural})
+ * @param {*} x количество
+ * @param {*} forms формы названия предмета (`[один, несколько, много]`)
+ * @returns форма множественного числа слова со счетчиком количества
+ */
 export function xplural(x, forms) {
   return `${x}\u00a0${plural(x, forms)}`
 }
 
+/**
+ * Сокращает данное число до тысяч
+ * @param {number} x число
+ * @returns сокращенная запись числа
+ */
 export function getShortNum(x) {
   const formatter = new Intl.NumberFormat('en', { maximumFractionDigits: 1 })
   const suffixes = [[1e6, 'M'], [1e3, 'K']]
@@ -57,18 +94,39 @@ export function getShortNum(x) {
   return formatter.format(x)
 }
 
+/**
+ * Прокручивает канал до последнего сообщения
+ */
 export function scrollToBottom() {
   const _c = document.querySelector('.contents-main')
   _c.scrollTo(0, _c.scrollHeight)
 }
 
+/**
+ * Предотвращает стандартное поведение события DOM
+ * @param {Event} event обрабатываемое событие DOM
+ */
 export function preventDefaults(event) {
   event.preventDefault()
   event.stopPropagation()
 }
+
+/**
+ * Привязывает указанную функцию к обработке нескольких данных
+ * событий (см. {@link Element.prototype.addEventListener addEventListener})
+ * @param {string} events список событий, разделенных пробелом (см. {@link ElementEventMap})
+ * @param {EventListenerOrEventListenerObject} listener функция-обработчик событий
+ * @param {boolean | AddEventListenerOptions | undefined} options параметры обработки событий (см. {@link AddEventListenerOptions})
+ */
 Element.prototype.addEventListeners = function(events, listener, options) {
   events.split(/\s+/).forEach(event => this.addEventListener(event, listener, options))
 }
+
+/**
+ * Получает n-го родителя данного элемента
+ * @param {number} n индекс родителя в структуре DOM
+ * @returns n-ый родитель данного элемента
+ */
 Element.prototype.takeNthParent = function(n) {
   let ref = this
   for (let i = 0; i < n; i++) ref = ref.parentElement

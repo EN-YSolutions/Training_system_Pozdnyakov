@@ -1,9 +1,15 @@
+// некоторые переменные
+// поскольку это константы, их можно использовать как переменные scss
+$black: #000;
+$header-bg: #2A3D51;
+$header-fg: #FFF;
+
+// а это мы будем изменять в дальнейшем, поэтому используем css
 :root {
-  --header-bg: #2a3d51;
-  --header-fg: #FFF;
   --avatar-border-width: 2px;
   --avatar-border-color: var(--bs-border-color);
 }
+
 html, body { height: 100%; }
 body {
   display: flex;
@@ -23,17 +29,21 @@ body {
 }
 
 .navbar {
-  background: var(--header-bg);
-  color: var(--header-fg);
+  background: $header-bg;
+  color: $header-fg;
   margin-block-end: 1rem;
   padding: .5rem 1rem;
 
   &-brand {
     color: inherit;
     padding: 0;
+
+    &:hover {
+      color: color-mix(in srgb, $header-fg 80%, $black);
+    }
   }
   &-avatar img {
-    --avatar-border-color: #000;
+    --avatar-border-color: $black;
   }
 }
 main.container-fluid {
@@ -88,7 +98,7 @@ main.container-fluid {
   time {
     font-size: .8em;
   }
-  .title, .last-author, .last-msg {
+  .title, .last-author, .last-msg { // схлопываем длинный текст в многоточие
     --clamp-count: 2;
     display: -webkit-box;
     line-clamp: var(--clamp-count);
@@ -121,17 +131,17 @@ main.container-fluid {
   display: flex;
   flex-direction: column;
 
-  .drop-here {
-    --border-gap: .75rem;
+  .drop-here { // оверлей для drag&drop
+    $border-gap: .75rem;
     position: absolute;
     inset: 0;
     z-index: 3;
     background: var(--bs-body-bg);
     text-align: center;
     border: 4px var(--bs-border-color) dashed;
-    padding: var(--border-gap);
-    margin: var(--border-gap);
-    outline: var(--border-gap) var(--bs-body-bg) solid;
+    padding: $border-gap;
+    margin: $border-gap;
+    outline: $border-gap var(--bs-body-bg) solid;
     display: none;
     flex-direction: column;
     justify-content: center;
@@ -147,7 +157,7 @@ main.container-fluid {
   &.dropping .drop-here {
     display: flex;
   }
-  &.dropping  * {
+  &.dropping * {
     pointer-events: none;
     user-select: none;
   }
@@ -176,6 +186,8 @@ main.container-fluid {
     }
   }
   &-main {
+    // оверфлоу и флекс лучше не объединять
+    // хз, как сейчас работает скролл, но он работает
     flex: 1;
     overflow: auto;
 
@@ -208,20 +220,22 @@ main.container-fluid {
     background: rgba(var(--bs-warning-rgb), .1);
   }
 
+  // самое важное здесь - транзишны
+  // пока меню скрыто, нужна задержка,
+  // которая убирается в открытом состоянии
   &-manage {
     float: inline-end;
     opacity: 0;
     visibility: hidden;
     transition: opacity $manage-duration, visibility 0s $manage-duration;
   }
-
   &:hover &-manage {
     opacity: 1;
     visibility: visible;
     transition: opacity $manage-duration $manage-delay;
   }
 
-  &.edited &-head:after {
+  &.edited &-head:after { // метка измененного сообщения
     content: '(изм.)';
     font-style: italic;
     font-size: .7em;
@@ -273,6 +287,8 @@ main.container-fluid {
   display: none;
 }
 
+// анимация отправляющегося сообщения:
+// кольцевая пульсация прозрачности от 90% до 30%
 @keyframes pending-pulse {
   0% { opacity: .3; }
   50% { opacity: .9; }

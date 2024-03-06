@@ -1,12 +1,15 @@
-import { Picker } from 'https://cdn.jsdelivr.net/npm/emoji-mart@5.5.2/+esm'
-import 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js'
-import { Marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
-import 'https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js'
-import * as Utils from './utils.js'
+// импортируем необходимые файлы и модули для работы
+import { Picker } from 'https://cdn.jsdelivr.net/npm/emoji-mart@5.5.2/+esm' // панель эмодзи
+import 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js' // бутстрап
+import { Marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js' // парсер маркдауна
+import 'https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js' // санитайзер для парсера
+import * as Utils from './utils.js' // утилиты
+import './types.js' // типы
 
+// самовызывающаяся функция для создания закрытого скоупа переменных в рантайме
 (async function() {
   'use strict'
-  const theme = (function setTheme() {
+  const theme = (function setTheme() { // ставим тему сайта (бутстрап сам не умеет)
     const _ = document.documentElement
     const theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
     if (_.getAttribute('data-bs-theme') === theme) return
@@ -14,6 +17,7 @@ import * as Utils from './utils.js'
     return theme
   })();
 
+  // готовим парсер маркдауна и сочетания клавич
   const marked = new Marked()
   const MARKUP_BINDS = {
     KeyB: 'bold', KeyI: 'italic',
@@ -21,6 +25,7 @@ import * as Utils from './utils.js'
     KeyL: 'link'
   }
 
+  // получаем данные пользователя
   let self = JSON.parse(localStorage.getItem('self-data'))
   {
     const request = await fetch('/api/@me')
@@ -30,6 +35,7 @@ import * as Utils from './utils.js'
   }
   document.querySelector('#self-avatar').src = `/avatars/${self.avatar}`
 
+  // применяем нужный стиль блоков с подсветкой синтаксиса
   {
     const el = document.createElement('link')
     el.href = `../helpers/prism.${theme === 'dark' ? 'dark.' : ''}css`
@@ -38,6 +44,9 @@ import * as Utils from './utils.js'
     document.head.append(el)
   }
 
+  // панель эмодзи
+  // todo: адекватно подружить панель с бутстрапом
+  // todo: решить проблему с ошибками рендера при повторном открытии панели
   const emoji_panel = new Picker({
     async data() {
       const response = await fetch('https://cdn.jsdelivr.net/npm/@emoji-mart/data')
@@ -52,7 +61,7 @@ import * as Utils from './utils.js'
   })
   console.dir(emoji_panel)
   emoji_panel.id = 'emoji-panel'
-  // document.body.append(emoji_panel)
+  // панель будет всплывать по нажатию кнопки в бутстраповском поповере
   const emoji_panel_popover = new bootstrap.Popover(document.querySelector('#emojis'), {
     html: true,
     customClass: 'emoji-popover',
@@ -67,11 +76,15 @@ import * as Utils from './utils.js'
     }
   })
 
+  // биндим кнопку со скрепкой на выбор файлов для прикрепления
   document.querySelector('#attach').addEventListener('click', () => {
     document.querySelector('#attachments-input').click()
   })
 
+  // слушаем нажатия клавиш глобально
   document.body.addEventListener('keydown', event => {
+    // шорткат на редактирование последнего сообщения
+    // todo: выбирать только свои сообщения
     if (event.code === 'ArrowUp') {
       const channel = document.querySelector('.channel.selected')
       if (!channel) return
@@ -83,6 +96,7 @@ import * as Utils from './utils.js'
       }))
     }
 
+    // отмена редактирования и/или закрытие канала по нажатию на эскейп
     if (event.code === 'Escape') {
       const input = document.querySelector('#message-input')
       if (input.hasAttribute('data-edit-id')) {
@@ -99,13 +113,16 @@ import * as Utils from './utils.js'
       document.querySelectorAll('.contents-piece').forEach(e => e.classList.toggle('hidden'))
     }
   })
+  // активируем кейбинды для быстрого форматирования
   document.querySelector('#message-input').addEventListener('keydown', event => {
     if ((event.metaKey || event.ctrlKey) && MARKUP_BINDS[event.code]) {
       event.preventDefault()
       addMarkup(MARKUP_BINDS[event.code])
     }
   })
-
+  
+  // обработчик drag&drop
+  // todo: загрузка файлов на сервер и отображение миниатюр на клиенте
   {
     const body = document.body
     const cont = document.querySelector('.contents')
@@ -135,6 +152,7 @@ import * as Utils from './utils.js'
     })
   }
 
+  // обновляем счетчики минут там, где это необходимо
   setInterval(function updateTimeago() {
     document.querySelectorAll('.timeago[datetime]').forEach(element => {
       const now = Date.now()
@@ -143,8 +161,10 @@ import * as Utils from './utils.js'
     })
   }, 10000)
 
+  // открываем соединение по вебсокету
   const ws = new WebSocket(`wss://${location.host}/ws`)
   ws.onopen = () => {
+    // аутентифицируемся
     console.log('Socket is online')
     ws.send(JSON.stringify({
       event: 'HANDSHAKE',
@@ -152,15 +172,16 @@ import * as Utils from './utils.js'
       ticket: self.ticket
     }))
 
+    // обработка всех событий
     ws.onmessage = event => {
-      const data = JSON.parse(event.data)
-      switch (data.event) {
-        case 'FEED': {
+      const data = JSON.parse(event.data) // парсим данные от сервера
+      switch (data.event) { // обрабатываем события по их названию
+        case 'FEED': { // оформление списка каналов
           buildChannelList(data.feed)
           break
         }
-        case 'CHANNEL': {
-          if (!data.messages.length) {
+        case 'CHANNEL': { // вход в канал; показ последних сообщений
+          if (!data.messages.length) { // если канал пустой
             const wrp = document.querySelector('.messages-wrapper')
             const badge = document.createElement('div')
             badge.className = 'empty-channel-badge badge bg-secondary'
@@ -172,14 +193,14 @@ import * as Utils from './utils.js'
           Utils.scrollToBottom()
           break
         }
-        case 'MESSAGE': {
+        case 'MESSAGE': { // подтверждение отправки своего сообщения
           const msg = document.querySelector(`.message[data-ticket="${data.ticket}"]`)
           msg.classList.remove('pending')
           msg.setAttribute('data-id', data.id)
           msg.removeAttribute('data-ticket')
           break
         }
-        case 'RAW_MESSAGE': {
+        case 'RAW_MESSAGE': { // код выбранного сообщения (для редактирования)
           const input = document.querySelector('#message-input')
           input.value = data.contents
           input.focus()
@@ -187,18 +208,18 @@ import * as Utils from './utils.js'
           document.querySelector(`.message[data-id="${data.id}"]`).classList.add('editing')
           break
         }
-        case 'NEW_MESSAGE': {
+        case 'NEW_MESSAGE': { // новое чужое сообщение
           if (data.channel !== document.querySelector('.channel.selected')?.getAttribute('data-id')) return
           document.querySelector('.messages-wrapper').append(makeMessage(data))
           Utils.scrollToBottom()
           break
         }
-        case 'DELETE': {
-          if (data.type !== 'MESSAGE') return
+        case 'DELETE': { // удаление сообщения
+          if (data.type !== 'MESSAGE') return // предполагается, что удалять можно будет не только сообщения
           const msg = document.querySelector(`.message[data-id="${data.target}"]`)
-          if (msg === null) return
+          if (msg === null) return // такого сообщения нет
           msg.remove()
-          if (!document.querySelectorAll('.message').length) {
+          if (!document.querySelectorAll('.message').length) { // это было последнее сообщение
             const wrp = document.querySelector('.messages-wrapper')
             const badge = document.createElement('div')
             badge.className = 'empty-channel-badge badge bg-secondary'
@@ -207,7 +228,7 @@ import * as Utils from './utils.js'
           }
           break
         }
-        case 'EDIT': {
+        case 'EDIT': { // редактирование сообщения; общий смысл аналогичен DELETE
           if (data.type !== 'MESSAGE') return
           const msg = document.querySelector(`.message[data-id="${data.target}"]`)
           console.log(msg)
@@ -218,15 +239,18 @@ import * as Utils from './utils.js'
           msg.querySelector('.message-manage [data-act="edit"]').removeAttribute('disabled')
           break
         }
-        case 'MEMBERS': {
+        case 'MEMBERS': { // просмотр участников канала
           showMembersModal(data.members)
           break
         }
       }
     }
+
+    // при разрыве соединения
     ws.onclose = event => {
       console.log('Socket closed:', event.code)
 
+      // создаем тост с оповещением
       const toast = document.createElement('div')
       toast.className = 'toast'
       toast.id = 'toast-ws-closed'
@@ -245,6 +269,8 @@ import * as Utils from './utils.js'
     }
   }
 
+  // помечаем сообщения прочитанными при скролле до конца вниз
+  // todo: отмечать прочитанные, даже если скролла нет
   document.querySelector('.contents-main').addEventListener('scroll', event => {
     const _ = event.currentTarget
     const channel_id = document.querySelector('.channel.selected')?.getAttribute('data-id')
@@ -256,6 +282,7 @@ import * as Utils from './utils.js'
     }))
   })
 
+  // запрашиваем список участников канала при нажатии на пункт дропдауна
   document.querySelector('.contents-manage [data-act="members"]').addEventListener('click', event => {
     const channel_id = document.querySelector('.channel.selected')?.getAttribute('data-id')
     if (typeof channel_id === 'undefined') return
@@ -265,6 +292,7 @@ import * as Utils from './utils.js'
       channel: channel_id
     }))
   })
+  // удаляем содержимое модали со списком участников при ее закрытии
   document.querySelector('#modal-members').addEventListener('hidden.bs.modal', event => {
     const _ = event.currentTarget
     document.querySelector('.contents-manage [data-act="members"]').removeAttribute('disabled')
@@ -272,11 +300,16 @@ import * as Utils from './utils.js'
     _.querySelectorAll('#members__count').innerText = '?'
   })
 
+  /**
+   * Оформляет список каналов
+   * @param {FeedChannel[]} list Массив с информацией о каналах
+   */
   function buildChannelList(list) {
     list.forEach(e => {
+      // делаем копию шаблона и заполняем ее данными
       const tem = document.getElementById('temp-channel').cloneNode(true).content
       const cont = tem.querySelector('.channel')
-      cont.setAttribute('data-id', e.channel_id)
+      cont.setAttribute('data-id', e.id)
       tem.querySelector('.avatar').src = `/avatars/${e.avatar}`
       tem.querySelector('.title').innerText = e.title
       if (e.created_at) tem.querySelector('time').dateTime = new Date(e.created_at).toISOString()
@@ -287,6 +320,7 @@ import * as Utils from './utils.js'
       tem.querySelector('.last-msg').innerHTML = parseMD(e.contents || 'Сообщений нет', true)
       if (e.unread) tem.querySelector('.badge').innerText = Utils.getShortNum(e.unread)
 
+      // вешаем хандлер на клик, чтобы открывать выбранный канал
       cont.onclick = event => {
         const _t = event.currentTarget
         const _c = document.querySelector('.contents')
@@ -299,23 +333,32 @@ import * as Utils from './utils.js'
         _c.querySelector('.current-title').innerText = _t.querySelector('.title').innerText
         _c.querySelector('.avatar').src = _t.querySelector('.avatar').src
         _c.querySelector('#message-input').onkeydown = event => {
+          // при нажатом шифте переносим сообщение на новую строчку, а не отправляем
           if (event.code === 'Enter' && !event.shiftKey) { event.preventDefault(); publishMessage() }
         }
         _c.querySelector('#message-send').onclick = publishMessage
 
+        // пока данные бегут к серверу и обратно, пусть крутится спиннер
         const spinner = document.createElement('div')
         spinner.className = 'spinner spinner-border'
         _c.querySelector('.messages-wrapper').append(spinner)
 
+        // идем за данными
         ws.send(JSON.stringify({
           event: 'CHANNEL',
           channel_id: _t.getAttribute('data-id')
         }))
       }
 
+      // заполненный шаблон пихаем в список каналов
       document.querySelector('.channels').append(tem)
     })
   }
+
+  /**
+   * Заполняет модаль данными участников канала и показывает ее
+   * @param {ChannelMember[]} members Массив данных участников канала
+   */
   function showMembersModal(members) {
     const modal = document.querySelector('#modal-members')
     const bs_modal = bootstrap.Modal.getOrCreateInstance(modal)

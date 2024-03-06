@@ -3,14 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#2a3d51">
+  <meta name="theme-color" content="#2a3d51"> <!-- цвет шапки браузера (мобильный chrome, safari) -->
+  <!-- подключаем зависимости -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
   <script src="../helpers/prism.js" defer data-manual></script>
   <title>Модуль чата</title>
+  <!-- подключаем локальные файлы -->
   <script src="script.js" type="module" defer></script>
   <link rel="stylesheet" href="style.scss">
 </head>
 <body>
+  <!-- шапка -->
   <nav class="navbar">
     <a href="#" class="navbar-brand">Образовательный портал</a>
     <div class="dropdown navbar-avatar">
@@ -22,9 +25,11 @@
     </div>
     </a>
   </nav>
+  <!-- основной контейнер -->
   <main class="container-fluid">
     <section class="channels"></section>
     <section class="contents">
+      <!-- полурабочий drag&drop -->
       <div class="drop-here hidden">
         <svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" fill="currentColor" class="bi bi-file-earmark-arrow-up" viewBox="0 0 16 16">
           <path d="M8.5 11.5a.5.5 0 0 1-1 0V7.707L6.354 8.854a.5.5 0 1 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 7.707z"/>
@@ -33,9 +38,11 @@
         <p class="drop-here__text">Отпустите файлы, чтобы прикрепить их к сообщению.</p>
       </div>
       <div class="badge bg-secondary">Выберите канал, чтобы начать работать!</div>
+      <!-- шапка канала -->
       <div class="contents-piece contents-header hidden">
         <img class="avatar" height="28" width="28">
         <strong class="current-title"></strong>
+        <!-- дропдаун с инструментами -->
         <div class="contents-manage dropdown no-arrow">
           <button class="btn btn-secondary btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
@@ -48,13 +55,15 @@
           </ul>
         </div>
       </div>
+      <!-- блок сообщений -->
       <div class="contents-piece contents-main hidden">
         <div class="messages-wrapper"></div>
       </div>
+      <!-- поле ввода и кнопочки -->
       <div class="contents-piece contents-input input-group hidden">
-        <div class="attachments-gallery"></div>
-        <input type="file" id="attachments-input" class="hidden" multiple>
-        <button class="btn btn-secondary btn-icon" type="button" id="attach">
+        <div class="attachments-gallery"></div> <!-- todo: контейнер для прикрепленных файлов -->
+        <input type="file" id="attachments-input" class="hidden" multiple> <!-- todo: инпут для прикрепления файлов -->
+        <button class="btn btn-secondary btn-icon" type="button" id="attach"> <!-- кнопка, связанная с инпутом выше -->
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-paperclip" viewBox="0 0 16 16">
             <path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0z"/>
           </svg>
@@ -74,8 +83,10 @@
     </section>
   </main>
 
+  <!-- контейнер для тоста разрыва соединения -->
   <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 
+  <!-- окно со списком участников -->
   <div class="modal" id="modal-members" data-bs-backdrop="static" tabindex="-1">
     <div class="modal-dialog modal-dialog-scrollable">
       <div class="modal-content">
@@ -91,6 +102,7 @@
     </div>
   </div>
 
+  <!-- иконки групп прав пользователей -->
   <svg class="hidden" style="position: fixed; top: 0; left: -99px; width: 0; height: 0" xmlns="http://www.w3.org/2000/svg">
     <!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
     <path d="M368.4 18.3L312.7 74.1 437.9 199.3l55.7-55.7c21.9-21.9 21.9-57.3 0-79.2L447.6 18.3c-21.9-21.9-57.3-21.9-79.2 0zM288 94.6l-9.2 2.8L134.7 140.6c-19.9 6-35.7 21.2-42.3 41L3.8 445.8c-3.8 11.3-1 23.9 7.3 32.4L164.7 324.7c-3-6.3-4.7-13.3-4.7-20.7c0-26.5 21.5-48 48-48s48 21.5 48 48s-21.5 48-48 48c-7.4 0-14.4-1.7-20.7-4.7L33.7 500.9c8.6 8.3 21.1 11.2 32.4 7.3l264.3-88.6c19.7-6.6 35-22.4 41-42.3l43.2-144.1 2.8-9.2L288 94.6z"/>
@@ -98,7 +110,8 @@
     <path id="fa-crown" d="M309 106c11.4-7 19-19.7 19-34c0-22.1-17.9-40-40-40s-40 17.9-40 40c0 14.4 7.6 27 19 34L209.7 220.6c-9.1 18.2-32.7 23.4-48.6 10.7L72 160c5-6.7 8-15 8-24c0-22.1-17.9-40-40-40S0 113.9 0 136s17.9 40 40 40c.2 0 .5 0 .7 0L86.4 427.4c5.5 30.4 32 52.6 63 52.6H426.6c30.9 0 57.4-22.1 63-52.6L535.3 176c.2 0 .5 0 .7 0c22.1 0 40-17.9 40-40s-17.9-40-40-40s-40 17.9-40 40c0 9 3 17.3 8 24l-89.1 71.3c-15.9 12.7-39.5 7.5-48.6-10.7L309 106z"/>
   </svg>
 
-  <template id="temp-channel">
+  <!-- шаблоны некоторых элементов -->
+  <template id="temp-channel"> <!-- канал -->
     <div class="channel">
       <div class="channel-left">
         <img class="avatar" height="48" width="48">
@@ -112,8 +125,9 @@
       <div class="badge bg-primary"></div>
     </div>
   </template>
-  <template id="temp-message">
+  <template id="temp-message"> <!-- сообщение -->
     <div class="message">
+      <!-- еще один дропдаун с инструментами -->
       <div class="message-manage dropdown no-arrow">
         <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear-fill" viewBox="0 0 16 16">
@@ -133,11 +147,11 @@
       </div>
       <div class="message-content">
         <div class="message-text"></div>
-        <div class="attachments"></div>
+        <div class="attachments"></div> <!-- todo: контейнер для вложений -->
       </div>
     </div>
   </template>
-  <template id="temp-member">
+  <template id="temp-member"> <!-- участник канала -->
     <div class="member">
       <div class="member-head">
         <img class="member-avatar avatar" height="28" width="28">

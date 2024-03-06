@@ -11,6 +11,7 @@ h1 {
     margin-block-end: .5rem;
   }
 
+  // вешаем звездочки на обязательные поля
   &-label:has(+ :required):after {
     content: '*';
     display: inline-block;
