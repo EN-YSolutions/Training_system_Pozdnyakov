@@ -1,8 +1,5 @@
--- создаем базу данных и пользователя
--- вместо [DATA EXPUNGED] надо указать пароль,
--- который затем пойдет в файл .env
-create database training_system_chat;
-create user tsc_backend with encrypted password '[DATA EXPUNGED]';
+-- здесь надо указать пароль, совпадающий с записанным в .env
+create user tsc_backend with encrypted password '...';
 
 -- некоторые типы данных
 create type user_role as enum ('student', 'teacher', 'curator', 'admin');
@@ -28,6 +25,10 @@ create table channels (
   is_private bool not null default false,
   is_static bool not null default false
 );
+insert into channels values
+  ('10000000-0000-4000-0000-000000000000', 'Флудилка', false, true),
+  ('10000000-0000-4000-0000-000000000001', 'Общий канал потоков', false, true);
+
 
 -- таблица сообщений
 create table messages (

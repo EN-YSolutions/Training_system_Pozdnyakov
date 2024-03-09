@@ -12,7 +12,7 @@ const MONTH = 30 * DAY
 const YEAR = 365 * DAY
 
 /**
- * 
+ * Данные групп прав пользователей для отображения на клиенте
  */
 export const USER_GROUPS = {
   student: { icon: null, name: 'Студент' },
