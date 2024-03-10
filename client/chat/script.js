@@ -17,6 +17,17 @@ import './types.js' // типы
     return theme
   })();
 
+  ;(function checkDependencies() {
+    const packages = ['Picker', 'Bootstrap', 'Marked', 'DOMPurify']
+    const state = [
+      typeof Picker, typeof bootstrap,
+      typeof Marked, typeof DOMPurify
+    ]
+    const failed = state.findIndex(f => f === 'undefined')
+    if (failed === -1) return
+    document.innerHTML = `Не удалось загрузить библиотеку ${packages[failed]}. Повторите попытку позже.`
+  })();
+
   // готовим парсер маркдауна и сочетания клавич
   const marked = new Marked()
   const MARKUP_BINDS = {

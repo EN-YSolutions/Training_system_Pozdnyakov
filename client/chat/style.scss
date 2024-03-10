@@ -1,6 +1,5 @@
 // некоторые переменные
 // поскольку это константы, их можно использовать как переменные scss
-$black: #000;
 $header-bg: #2A3D51;
 $header-fg: #FFF;
 
@@ -39,11 +38,11 @@ body {
     padding: 0;
 
     &:hover {
-      color: color-mix(in srgb, $header-fg 80%, $black);
+      color: color-mix(in srgb, $header-fg 80%, #000);
     }
   }
   &-avatar img {
-    --avatar-border-color: $black;
+    --avatar-border-color: #000;
   }
 }
 main.container-fluid {

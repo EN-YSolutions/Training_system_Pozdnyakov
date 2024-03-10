@@ -117,6 +117,19 @@ app.post('/api/login', async (req, res) => {
   }).status(200).send({})
 })
 
+// выход из аккаунта
+app.get('/logout', async (req, res) => {
+  res.header('cache-control', 'no-cache')
+  if (typeof req.cookies['auth-token'] === 'undefined') return res.redirect(303, '/')
+
+  // проверяем токен
+  const token_data = await Misc.resolveJWT(req.cookies['auth-token'])
+  if (token_data === null) return res.redirect(303, '/')
+  if (Date.now() > token_data.exp * 1000) return res.redirect(303, '/')
+
+  res.cookie('auth-token', 'deleted', { maxAge: -1 }).redirect(303, '/')
+})
+
 // данные пользователя
 app.get('/api/@me', async (req, res) => {
   if (typeof req.cookies['auth-token'] === 'undefined') return res.sendStatus(401)
@@ -171,7 +184,7 @@ app.get('/avatars/:hash', (req, res) => {
   }
 })
 
-// вешает мидлварь с проверкой аутентификации
+// вешаем мидлварь с проверкой аутентификации
 app.get('/', (req, res, next) => {
   if (typeof req.cookies['auth-token'] !== 'undefined') return res.redirect(303, '/chat')
   next()

@@ -32,6 +32,11 @@ h1 {
   }
 }
 
+.error {
+  text-align: center;
+  color: var(--bs-red);
+}
+
 .hidden {
   display: none;
 }
