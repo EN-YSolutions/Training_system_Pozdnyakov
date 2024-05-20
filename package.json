@@ -4,7 +4,7 @@
   "description": "",
   "main": "server/index.js",
   "scripts": {
-    "start": "cd server && sudo nodemon ."
+    "start": "cd server && nodemon ."
   },
   "private": true,
   "type": "module",

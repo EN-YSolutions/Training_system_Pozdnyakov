@@ -27,7 +27,17 @@
   </nav>
   <!-- основной контейнер -->
   <main class="container-fluid">
-    <section class="channels"></section>
+    <section class="panel">
+      <div class="channels"></div>
+      <div class="btn-group panel-tools">
+        <button class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#modal-new-channel" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-megaphone-fill" viewBox="0 0 16 16">
+            <path d="M13 2.5a1.5 1.5 0 0 1 3 0v11a1.5 1.5 0 0 1-3 0zm-1 .724c-2.067.95-4.539 1.481-7 1.656v6.237a25 25 0 0 1 1.088.085c2.053.204 4.038.668 5.912 1.56zm-8 7.841V4.934c-.68.027-1.399.043-2.008.053A2.02 2.02 0 0 0 0 7v2c0 1.106.896 1.996 1.994 2.009l.496.008a64 64 0 0 1 1.51.048m1.39 1.081q.428.032.85.078l.253 1.69a1 1 0 0 1-.983 1.187h-.548a1 1 0 0 1-.916-.599l-1.314-2.48a66 66 0 0 1 1.692.064q.491.026.966.06"/>
+          </svg>
+          Новый канал
+        </button>
+      </div>
+    </section>
     <section class="contents">
       <!-- полурабочий drag&drop -->
       <div class="drop-here hidden">
@@ -87,11 +97,11 @@
   <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 
   <!-- окно со списком участников -->
-  <div class="modal" id="modal-members" data-bs-backdrop="static" tabindex="-1">
+  <div class="modal fade" id="modal-members" tabindex="-1">
     <div class="modal-dialog modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 class="modal-title fs-5">Участники канала (<span id="members__count">?</span>)</h3>
+          <h5 class="modal-title">Участники канала (<span id="members__count">?</span>)</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body"></div>
@@ -101,11 +111,35 @@
       </div>
     </div>
   </div>
+  <div class="modal fade" id="modal-new-channel" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <form class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fs-5">Новый канал</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-entry mb-3">
+            <label class="form-label" for="mnc-title">Название</label>
+            <input class="form-control" type="text" name="title" id="mnc-title" maxlength="128" autocomplete="off" required>
+          </div>
+          <div class="form-entry mb-3">
+            <label class="form-label">Добавить пользователей:</label>
+            <div id="mnc-users"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+          <button type="submit" class="btn btn-primary">Создать</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- иконки групп прав пользователей -->
   <svg class="hidden" style="position: fixed; top: 0; left: -99px; width: 0; height: 0" xmlns="http://www.w3.org/2000/svg">
     <!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
-    <path d="M368.4 18.3L312.7 74.1 437.9 199.3l55.7-55.7c21.9-21.9 21.9-57.3 0-79.2L447.6 18.3c-21.9-21.9-57.3-21.9-79.2 0zM288 94.6l-9.2 2.8L134.7 140.6c-19.9 6-35.7 21.2-42.3 41L3.8 445.8c-3.8 11.3-1 23.9 7.3 32.4L164.7 324.7c-3-6.3-4.7-13.3-4.7-20.7c0-26.5 21.5-48 48-48s48 21.5 48 48s-21.5 48-48 48c-7.4 0-14.4-1.7-20.7-4.7L33.7 500.9c8.6 8.3 21.1 11.2 32.4 7.3l264.3-88.6c19.7-6.6 35-22.4 41-42.3l43.2-144.1 2.8-9.2L288 94.6z"/>
+    <path id="fa-pen-nib" d="M368.4 18.3L312.7 74.1 437.9 199.3l55.7-55.7c21.9-21.9 21.9-57.3 0-79.2L447.6 18.3c-21.9-21.9-57.3-21.9-79.2 0zM288 94.6l-9.2 2.8L134.7 140.6c-19.9 6-35.7 21.2-42.3 41L3.8 445.8c-3.8 11.3-1 23.9 7.3 32.4L164.7 324.7c-3-6.3-4.7-13.3-4.7-20.7c0-26.5 21.5-48 48-48s48 21.5 48 48s-21.5 48-48 48c-7.4 0-14.4-1.7-20.7-4.7L33.7 500.9c8.6 8.3 21.1 11.2 32.4 7.3l264.3-88.6c19.7-6.6 35-22.4 41-42.3l43.2-144.1 2.8-9.2L288 94.6z"/>
     <path id="fa-graduation-cap" d="M320 32c-8.1 0-16.1 1.4-23.7 4.1L15.8 137.4C6.3 140.9 0 149.9 0 160s6.3 19.1 15.8 22.6l57.9 20.9C57.3 229.3 48 259.8 48 291.9v28.1c0 28.4-10.8 57.7-22.3 80.8c-6.5 13-13.9 25.8-22.5 37.6C0 442.7-.9 448.3 .9 453.4s6 8.9 11.2 10.2l64 16c4.2 1.1 8.7 .3 12.4-2s6.3-6.1 7.1-10.4c8.6-42.8 4.3-81.2-2.1-108.7C90.3 344.3 86 329.8 80 316.5V291.9c0-30.2 10.2-58.7 27.9-81.5c12.9-15.5 29.6-28 49.2-35.7l157-61.7c8.2-3.2 17.5 .8 20.7 9s-.8 17.5-9 20.7l-157 61.7c-12.4 4.9-23.3 12.4-32.2 21.6l159.6 57.6c7.6 2.7 15.6 4.1 23.7 4.1s16.1-1.4 23.7-4.1L624.2 182.6c9.5-3.4 15.8-12.5 15.8-22.6s-6.3-19.1-15.8-22.6L343.7 36.1C336.1 33.4 328.1 32 320 32zM128 408c0 35.3 86 72 192 72s192-36.7 192-72L496.7 262.6 354.5 314c-11.1 4-22.8 6-34.5 6s-23.5-2-34.5-6L143.3 262.6 128 408z"/>
     <path id="fa-crown" d="M309 106c11.4-7 19-19.7 19-34c0-22.1-17.9-40-40-40s-40 17.9-40 40c0 14.4 7.6 27 19 34L209.7 220.6c-9.1 18.2-32.7 23.4-48.6 10.7L72 160c5-6.7 8-15 8-24c0-22.1-17.9-40-40-40S0 113.9 0 136s17.9 40 40 40c.2 0 .5 0 .7 0L86.4 427.4c5.5 30.4 32 52.6 63 52.6H426.6c30.9 0 57.4-22.1 63-52.6L535.3 176c.2 0 .5 0 .7 0c22.1 0 40-17.9 40-40s-17.9-40-40-40s-40 17.9-40 40c0 9 3 17.3 8 24l-89.1 71.3c-15.9 12.7-39.5 7.5-48.6-10.7L309 106z"/>
   </svg>
@@ -154,15 +188,25 @@
   <template id="temp-member"> <!-- участник канала -->
     <div class="member">
       <div class="member-head">
-        <img class="member-avatar avatar" height="28" width="28">
-        <strong class="member-name"></strong>
-        <span class="member-group"></span>
+        <img class="user-avatar avatar" height="28" width="28">
+        <strong class="user-name"></strong>
+        <span class="user-group"></span>
       </div>
       <div class="member-body">
-        <time class="member-joined"></time>;
+        <span class="member-joined"><time class="member-joined"></time>;</span>
         <span class="member-messages"></span>
       </div>
     </div>
+  </template>
+  <template id="temp-suggested">
+    <label class="suggested-user">
+      <span class="user-avatar-wrp">
+        <img class="user-avatar avatar" height="28" width="28">
+      </span>
+      <span class="user-name"></span>
+      <span class="user-group"></span>
+      <input type="checkbox" name="users" value="">
+    </label>
   </template>
 </body>
 </html>

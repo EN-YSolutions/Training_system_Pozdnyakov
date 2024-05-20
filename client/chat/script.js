@@ -1,5 +1,4 @@
 // импортируем необходимые файлы и модули для работы
-import { Picker } from 'https://cdn.jsdelivr.net/npm/emoji-mart@5.5.2/+esm' // панель эмодзи
 import 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js' // бутстрап
 import { Marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js' // парсер маркдауна
 import 'https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js' // санитайзер для парсера
@@ -42,6 +41,7 @@ import './types.js' // типы
     const request = await fetch('/api/@me')
     const response = await request.json()
     self = response
+    applyRights()
     localStorage.setItem('self-data', JSON.stringify(self))
   }
   document.querySelector('#self-avatar').src = `/avatars/${self.avatar}`
@@ -58,34 +58,25 @@ import './types.js' // типы
   // панель эмодзи
   // todo: адекватно подружить панель с бутстрапом
   // todo: решить проблему с ошибками рендера при повторном открытии панели
-  const emoji_panel = new Picker({
-    async data() {
-      const response = await fetch('https://cdn.jsdelivr.net/npm/@emoji-mart/data')
-      return response.json()
-    },
-    onEmojiSelect(emoji) {
-      console.log(emoji)
-      document.querySelector('#message-input').value += emoji.native
-    },
-    locale: 'ru',
-    theme
-  })
-  console.dir(emoji_panel)
-  emoji_panel.id = 'emoji-panel'
   // панель будет всплывать по нажатию кнопки в бутстраповском поповере
   const emoji_panel_popover = new bootstrap.Popover(document.querySelector('#emojis'), {
     html: true,
     customClass: 'emoji-popover',
     placement: 'top',
+    content: 'foo',
     offset: [-175, 0],
-    content: emoji_panel
+    trigger: 'manual'
   })
-  document.querySelector('#emojis').addEventListener('click', event => {
-    if (typeof event.currentTarget.popover !== 'undefined') {
-      event.currentTarget.popover('show')
-      emoji_panel.component.prototype.render()
+  document.querySelector('#emojis').addEventListener('click', (function(event) {
+    console.log(this)
+    this.toggle()
+    if (this._isShown()) { // был открыт, закрывается
+      console.log('closing popover')
+    } else {
+      console.log('opening popover')
+      // this.setContent()
     }
-  })
+  }).bind(emoji_panel_popover))
 
   // биндим кнопку со скрепкой на выбор файлов для прикрепления
   document.querySelector('#attach').addEventListener('click', () => {
@@ -95,11 +86,10 @@ import './types.js' // типы
   // слушаем нажатия клавиш глобально
   document.body.addEventListener('keydown', event => {
     // шорткат на редактирование последнего сообщения
-    // todo: выбирать только свои сообщения
     if (event.code === 'ArrowUp') {
       const channel = document.querySelector('.channel.selected')
       if (!channel) return
-      const msg = [...document.querySelectorAll('.message')].at(-1)
+      const msg = [...document.querySelectorAll('.message.self')].at(-1)
       msg.querySelector('[data-act="edit"]').setAttribute('disabled', '')
       ws.send(JSON.stringify({
         event: 'RAW_MESSAGE',
@@ -124,14 +114,20 @@ import './types.js' // типы
       document.querySelectorAll('.contents-piece').forEach(e => e.classList.toggle('hidden'))
     }
   })
-  // активируем кейбинды для быстрого форматирования
+  // здесь к клавиатуре нужен особый подход
   document.querySelector('#message-input').addEventListener('keydown', event => {
+    // позволяем ставить табы
+    if (event.code === 'Tab') {
+      event.preventDefault()
+      event.currentTarget.value += '\t'
+    }
+    // активируем кейбинды для быстрого форматирования
     if ((event.metaKey || event.ctrlKey) && MARKUP_BINDS[event.code]) {
       event.preventDefault()
       addMarkup(MARKUP_BINDS[event.code])
     }
   })
-  
+
   // обработчик drag&drop
   // todo: загрузка файлов на сервер и отображение миниатюр на клиенте
   {
@@ -173,6 +169,23 @@ import './types.js' // типы
   }, 10000)
 
   // открываем соединение по вебсокету
+  class WSConnection {
+    ws
+    #PATH = `wss://${location.host}/ws`
+    constructor () {
+      this.ws = new WebSocket(this.#PATH)
+      this.ws.addEventListener('open', this.#handleOpen)
+    }
+
+    #handleOpen() {
+      console.log('Socket is online')
+      ws.send(JSON.stringify({
+        event: 'HANDSHAKE',
+        id: self.id,
+        ticket: self.ticket
+      }))
+    }
+  }
   const ws = new WebSocket(`wss://${location.host}/ws`)
   ws.onopen = () => {
     // аутентифицируемся
@@ -182,6 +195,8 @@ import './types.js' // типы
       id: self.id,
       ticket: self.ticket
     }))
+
+    document.querySelector('button[data-bs-target="#modal-new-channel"]')?.removeAttribute('disabled')
 
     // обработка всех событий
     ws.onmessage = event => {
@@ -202,6 +217,15 @@ import './types.js' // типы
           }
           buildMessagesList(data.messages)
           Utils.scrollToBottom()
+
+          const current = document.querySelector('.channel.selected')
+          if (typeof current !== null) {
+            current.querySelector('.badge').innerText = ''
+            ws.send(JSON.stringify({
+              event: 'ACKNOWLEDGEMENT',
+              channel: current.getAttribute('data-id')
+            }))
+          }
           break
         }
         case 'MESSAGE': { // подтверждение отправки своего сообщения
@@ -254,6 +278,28 @@ import './types.js' // типы
           showMembersModal(data.members)
           break
         }
+        case 'SUGGESTED_USERS': {
+          for (const user of data.users) {
+            const tem = document.querySelector('#temp-suggested').cloneNode(true).content
+            const group = Utils.USER_GROUPS[user.role]
+            tem.querySelector('.avatar').src = `/avatars/${user.avatar}`
+            tem.querySelector('.user-name').innerText = user.name
+            if (group.icon !== null) tem.querySelector('.user-group').innerHTML = String.prototype.concat(
+              `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${group.icon[1]} 512">`,
+                `<use href="#fa-${group.icon[0]}"></use>`,
+              `</svg>`
+            )
+            tem.querySelector('.user-group').title = group.name
+            tem.querySelector('input').value = user.id
+            document.querySelector('#mnc-users').append(tem)
+          }
+          break
+        }
+        case 'NEW_CHANNEL': {
+          bootstrap.Modal.getOrCreateInstance(document.querySelector('#modal-new-channel')).hide()
+          document.querySelector('.channels').prepend(makeChannel(data.channel))
+          break
+        }
       }
     }
 
@@ -272,7 +318,12 @@ import './types.js' // типы
           `<time class="timeago" datetime="${new Date().toISOString()}">сейчас</time>`,
           `<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>`,
         `</div>`,
-        `<div class="toast-body">Код закрытия: ${event.code}</div>`,
+        `<div class="toast-body">`,
+          `<div>Код закрытия: ${event.code}</div>`,
+          `<div class="mt-2 pt-2 border-top">`,
+            `<button type="button" class="btn btn-primary btn-sm">Перезагрузить</button>`,
+          `</div>`,
+        `</div>`
       )
       document.querySelector('.toast-container').append(toast)
       bootstrap.Toast.getOrCreateInstance(toast).show()
@@ -293,7 +344,7 @@ import './types.js' // типы
     }))
   })
 
-  // запрашиваем список участников канала при нажатии на пункт дропдауна
+  // запрашиваем список участников канала при выборе пункта дропдауна
   document.querySelector('.contents-manage [data-act="members"]').addEventListener('click', event => {
     const channel_id = document.querySelector('.channel.selected')?.getAttribute('data-id')
     if (typeof channel_id === 'undefined') return
@@ -310,60 +361,93 @@ import './types.js' // типы
     _.querySelectorAll('.member').forEach(el => el.remove())
     _.querySelectorAll('#members__count').innerText = '?'
   })
+  // предлагаем пользователей при создании канала
+  document.querySelector('#modal-new-channel').addEventListener('show.bs.modal', () => {
+    ws.send(JSON.stringify({ event: 'SUGGEST_USERS' }))
+  })
+  // удаляем содержимое модали для создания канала при ее закрытии
+  document.querySelector('#modal-new-channel').addEventListener('hidden.bs.modal', event => {
+    const _ = event.currentTarget
+    _.querySelector('#mnc-title').value = ''
+    Array.from(_.querySelector('#mnc-users').children).forEach(el => el.remove())
+  })
+  document.querySelector('#modal-new-channel .modal-content').addEventListener('submit', function(event) {
+    event.preventDefault()
+    const fd = new FormData(event.target)
+    fd.append('users', self.id)
+    ws.send(JSON.stringify({
+      event: 'CREATE_CHANNEL',
+      ...Array.from(fd.entries()).reduce((obj, [key, val]) => {
+        if (obj[key] instanceof Array) obj[key].push(val)
+        else if (typeof obj[key] !== 'undefined') {
+          obj[key] = new Array(obj[key])
+          obj[key].push(val)
+        } else obj[key] = val
+        return obj
+      }, {})
+    }))
+  })
+
+  function applyRights() {
+    if (!['admin', 'curator'].includes(self.role)) {
+      document.querySelector('.panel-tools .btn').remove()
+    }
+  }
 
   /**
    * Оформляет список каналов
    * @param {FeedChannel[]} list Массив с информацией о каналах
    */
   function buildChannelList(list) {
-    list.forEach(e => {
-      // делаем копию шаблона и заполняем ее данными
-      const tem = document.getElementById('temp-channel').cloneNode(true).content
-      const cont = tem.querySelector('.channel')
-      cont.setAttribute('data-id', e.id)
-      tem.querySelector('.avatar').src = `/avatars/${e.avatar}`
-      tem.querySelector('.title').innerText = e.title
-      if (e.created_at) tem.querySelector('time').dateTime = new Date(e.created_at).toISOString()
-      tem.querySelector('time').innerText = e.created_at
-        ? Utils.timeago(Date.now() - new Date(e.created_at).getTime())
-        : ''
-      tem.querySelector('.last-author').innerText = e.username
-      tem.querySelector('.last-msg').innerHTML = parseMD(e.contents || 'Сообщений нет', true)
-      if (e.unread) tem.querySelector('.badge').innerText = Utils.getShortNum(e.unread)
+    for (const channel of list) {
+      document.querySelector('.channels').append(makeChannel(channel))
+    }
+  }
+  function makeChannel(data) {
+    // делаем копию шаблона и заполняем ее данными
+    const tem = document.getElementById('temp-channel').cloneNode(true).content
+    const cont = tem.querySelector('.channel')
+    cont.setAttribute('data-id', data.id)
+    tem.querySelector('.avatar').src = `/avatars/${data.avatar}`
+    tem.querySelector('.title').innerText = data.title
+    if (data.created_at) tem.querySelector('time').dateTime = new Date(data.created_at).toISOString()
+    tem.querySelector('time').innerText = data.created_at
+      ? Utils.timeago(Date.now() - new Date(data.created_at).getTime())
+      : ''
+    tem.querySelector('.last-author').innerText = data.username ?? ''
+    tem.querySelector('.last-msg').innerHTML = parseMD(data.contents || 'Сообщений нет', true)
+    if (data.unread) tem.querySelector('.badge').innerText = Utils.getShortNum(data.unread)
 
-      // вешаем хандлер на клик, чтобы открывать выбранный канал
-      cont.onclick = event => {
-        const _t = event.currentTarget
-        const _c = document.querySelector('.contents')
-        document.querySelectorAll('.channel').forEach(e => e.classList.remove('selected'))
-        _t.classList.add('selected')
+    // вешаем хандлер на клик, чтобы открывать выбранный канал
+    cont.onclick = event => {
+      const _t = event.currentTarget
+      const _c = document.querySelector('.contents')
+      document.querySelectorAll('.channel').forEach(e => e.classList.remove('selected'))
+      _t.classList.add('selected')
 
-        document.querySelectorAll('.contents-piece').forEach(e => e.classList.remove('hidden'))
-        _c.querySelector('.badge').classList.add('hidden')
-        _c.querySelectorAll('.messages-wrapper > *').forEach(e => e.remove())
-        _c.querySelector('.current-title').innerText = _t.querySelector('.title').innerText
-        _c.querySelector('.avatar').src = _t.querySelector('.avatar').src
-        _c.querySelector('#message-input').onkeydown = event => {
-          // при нажатом шифте переносим сообщение на новую строчку, а не отправляем
-          if (event.code === 'Enter' && !event.shiftKey) { event.preventDefault(); publishMessage() }
-        }
-        _c.querySelector('#message-send').onclick = publishMessage
-
-        // пока данные бегут к серверу и обратно, пусть крутится спиннер
-        const spinner = document.createElement('div')
-        spinner.className = 'spinner spinner-border'
-        _c.querySelector('.messages-wrapper').append(spinner)
-
-        // идем за данными
-        ws.send(JSON.stringify({
-          event: 'CHANNEL',
-          channel_id: _t.getAttribute('data-id')
-        }))
+      document.querySelectorAll('.contents-piece').forEach(e => e.classList.remove('hidden'))
+      _c.querySelector('.badge').classList.add('hidden')
+      _c.querySelectorAll('.messages-wrapper > *').forEach(e => e.remove())
+      _c.querySelector('.current-title').innerText = _t.querySelector('.title').innerText
+      _c.querySelector('.avatar').src = _t.querySelector('.avatar').src
+      _c.querySelector('#message-input').onkeydown = event => {
+        // при нажатом шифте переносим сообщение на новую строчку, а не отправляем
+        if (event.code === 'Enter' && !event.shiftKey) { event.preventDefault(); publishMessage() }
       }
+      _c.querySelector('#message-send').onclick = publishMessage
 
-      // заполненный шаблон пихаем в список каналов
-      document.querySelector('.channels').append(tem)
-    })
+      // пока данные бегут к серверу и обратно, пусть крутится спиннер
+      const spinner = document.createElement('div')
+      spinner.className = 'spinner spinner-border'
+      _c.querySelector('.messages-wrapper').append(spinner)
+
+      // идем за данными
+      ws.send(JSON.stringify({
+        event: 'CHANNEL',
+        channel_id: _t.getAttribute('data-id')
+      }))
+    }
+    return cont
   }
 
   /**
@@ -379,16 +463,19 @@ import './types.js' // типы
       const group = Utils.USER_GROUPS[member.role]
       tem.querySelector('.member').setAttribute('data-id', member.id)
       tem.querySelector('.avatar').src = `/avatars/${member.avatar}`
-      tem.querySelector('.member-name').innerText = member.name
-      if (group.icon !== null) tem.querySelector('.member-group').innerHTML = String.prototype.concat(
+      tem.querySelector('.user-name').innerText = member.name
+      if (group.icon !== null) tem.querySelector('.user-group').innerHTML = String.prototype.concat(
         `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${group.icon[1]} 512">`,
           `<use href="#fa-${group.icon[0]}"></use>`,
         `</svg>`
       )
-      tem.querySelector('.member-group').title = group.name
+      tem.querySelector('.user-group').title = group.name
       tem.querySelector('.member-messages').innerText = Utils.xplural(member.messages, ['сообщение', 'сообщения', 'сообщений'])
-      tem.querySelector('.member-joined').dateTime = member.joined_at
-      tem.querySelector('.member-joined').innerText = Utils.getMessageStamp(member.joined_at)
+      if (typeof member.joined_at === 'undefined') tem.querySelector('.member-joined').remove()
+      else {
+        tem.querySelector('.member-joined time').dateTime = member.joined_at
+        tem.querySelector('.member-joined time').innerText = Utils.getMessageStamp(member.joined_at)
+      }
       modal.querySelector('.modal-body').append(tem)
     }
     bs_modal.show()
@@ -403,9 +490,10 @@ import './types.js' // типы
     const cont = tem.querySelector('.message')
     const text = tem.querySelector('.message-text')
     cont.setAttribute('data-id', data.id)
+    if (data.author === self.id) cont.classList.add('self')
     if (data.edited_at) cont.classList.add('edited')
     tem.querySelector('.avatar').src = `/avatars/${data.avatar}`
-    tem.querySelector('.author').innerText = data.author
+    tem.querySelector('.author').innerText = data.username
     tem.querySelector('time').dateTime = new Date(data.created_at).toISOString()
     tem.querySelector('time').innerText = Utils.getMessageStamp(data.created_at)
     text.innerHTML = parseMD(data.contents)

@@ -32,7 +32,7 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(compression())
-server.listen(PORT, HOST, () => console.log(`Listening on https://${HOST}:${PORT}/`))
+server.listen(PORT, HOST, () => console.log(`Listening on local port ${PORT}`))
 
 // готовим обработчик загружаемых файлов
 const uploader = multer({ dest: './attachments' })
@@ -127,23 +127,27 @@ app.get('/logout', async (req, res) => {
   if (token_data === null) return res.redirect(303, '/')
   if (Date.now() > token_data.exp * 1000) return res.redirect(303, '/')
 
-  res.cookie('auth-token', 'deleted', { maxAge: -1 }).redirect(303, '/')
+  res.cookie('auth-token', 'deleted', { maxAge: -1, secure: true, httpOnly: true, domain: process.env.COOKIE_DOMAIN })
+    .redirect(303, '/')
 })
 
 // данные пользователя
 app.get('/api/@me', async (req, res) => {
   if (typeof req.cookies['auth-token'] === 'undefined') return res.sendStatus(401)
+  const t = new Misc.Timer(res)
 
   // проверяем токен
   const token_data = await Misc.resolveJWT(req.cookies['auth-token'])
+  t.lap('jwt', 'Token check')
   if (token_data === null) return res.status(401).send({ message: 'Токен имеет недействительную подпись!' })
   if (Date.now() > token_data.exp * 1000) return res.status(401).send({ message: 'Срок действия токена истек!' })
 
   // получаем данные 
-  const data = (await db.query(`select id, login, "name" from users where id = ?;`, {
+  const data = (await db.query(`select id, login, "name", "role" from users where id = ?;`, {
     replacements: [token_data.sub],
     type: QueryTypes.SELECT
   }))[0]
+  t.lap('db', 'Database query')
   if (typeof data === 'undefined') return res.status(404).send({ message: 'Пользователь не существует!' })
 
   // отдаем результат
@@ -168,7 +172,7 @@ app.put('/api/attach', uploader.array('files'), async (req, res) => {
   if (token_data === null) return res.status(401).send({ message: 'Токен имеет недействительную подпись!' })
   if (Date.now() > token_data.exp * 1000) return res.status(401).send({ message: 'Срок действия токена истек!' })
 
-  res.sendStatus(503)
+  res.sendStatus(501)
 })
 
 // генерим иконки на сервере, чтобы этим не занимался клиент
@@ -203,21 +207,6 @@ app.get('/*.scss', (req, res) => {
   res.send(compiled.css)
 })
 
-// раздаем остальные файлы (но вообще это должен делать нжинкс или апач)
-app.get('/*', (req, res) => {
-  try {
-    if (req.path.match(/\/[a-z\d_]+$/i) && statSync(`../client${req.path}`).isDirectory)
-      return res.redirect(301, req.path + '/')
-  } catch (err) {
-    res.sendStatus(404)
-  }
-
-  if (req.path.match(/\/$/))
-    res.status(200).sendFile(resolvePath(`../client${req.path}/index.html`), err => Misc.handleSendFileErrors(err, res))
-  else
-    res.status(200).sendFile(resolvePath(`../client${req.path}`), err => Misc.handleSendFileErrors(err, res))
-})
-
 // поднимаем сервер для вебсокетов на базе существующего
 const ws = new WebSocketServer({ server, path: '/ws' })
 ws.on('connection', con => {
@@ -248,13 +237,14 @@ ws.on('connection', con => {
             `coalesce(msg.created_at, '-Infinity') created_at,`,
             `usr.id author,`,
             `usr."name" username,`,
-            `(select count(1) from messages where created_at > coalesce((select last_view from acknowledgements where "user" = ? and channel = chan.id), 'epoch') and channel = chan.id)::int unread `,
+            `(select count(1) from messages where created_at > coalesce((select last_view from acknowledgements where "user" = :id and channel = chan.id), 'epoch') and channel = chan.id)::int unread `,
           `from channels chan `,
           `left join lateral (select * from messages where channel = chan.id order by id desc limit 1) msg on msg.channel = chan.id `,
           `left join lateral (select * from users where id = msg.author) usr on usr.id = msg.author `,
-          `where is_static order by created_at desc, title asc;`
+          `where is_static or chan.id in (select channel from channel_members cm where "user" = :id) `,
+          `order by created_at desc, title asc;`
         ), {
-          replacements: [con._USERID],
+          replacements: { id: con._USERID },
           type: QueryTypes.SELECT
         })
         con.send(JSON.stringify({
@@ -265,7 +255,7 @@ ws.on('connection', con => {
       }
       case 'CHANNEL': { // пользователь открыл канал
         // собираем сообщения
-        const messages = await db.query(`select *, (select "name" from users where id = author) author, encode(sha256(convert_to(author::text, 'UTF-8')), 'hex') avatar from messages where channel = ? order by created_at desc, id desc limit 50;`, {
+        const messages = await db.query(`select *, (select "name" from users where id = author) username, encode(sha256(convert_to(author::text, 'UTF-8')), 'hex') avatar from messages where channel = ? order by created_at desc, id desc limit 50;`, {
           replacements: [data.channel_id],
           type: QueryTypes.SELECT
         })
@@ -338,7 +328,18 @@ ws.on('connection', con => {
         break
       }
       case 'MEMBERS': { // пользователь хочет посмотреть список участников канала
-        const members = await db.query(`select us.id, us."name", encode(sha256(convert_to(us.id::text, 'UTF-8')), 'hex') avatar, us."role", cm.joined_at, (select count(1)::int from messages ms where ms.author = us.id and ms.channel = :id) messages from channel_members cm inner join users us on us.id = cm."user" where cm.channel = :id;`, {
+        const { is_static } = (await db.query('select is_static from channels where id = ?;', {
+          replacements: [data.channel],
+          type: QueryTypes.SELECT
+        }))[0]
+        const query = String.prototype.concat(
+          `select us.id, us."name", encode(sha256(convert_to(us.id::text, 'UTF-8')), 'hex') avatar, us."role", (select count(1)::int from messages ms where ms.author = us.id and ms.channel = :id) messages`,
+          is_static
+            ? ` from users us`
+            : `, cm.joined_at from channel_members cm inner join users us on us.id = cm."user" where cm.channel = :id`,
+          ` order by us."role" desc;`
+        )
+        const members = await db.query(query, {
           replacements: { id: data.channel },
           type: QueryTypes.SELECT
         })
@@ -346,6 +347,7 @@ ws.on('connection', con => {
           event: 'MEMBERS',
           members
         }))
+        break
       }
       case 'ACKNOWLEDGEMENT': { // пользователь прочитал канал
         await db.query(`insert into acknowledgements ("user", channel) values (?) on conflict ("user", channel) do update set last_view = current_timestamp;`, {
@@ -356,6 +358,31 @@ ws.on('connection', con => {
           event: 'ACKNOWLEDGEMENT',
           ok: '' // сомнительно, но окэй
         }))
+        break
+      }
+      case 'SUGGEST_USERS': { // пользователи, которых можно добавить в новый канал
+        const users = await db.query(`select id, "name", encode(sha256(convert_to(id::text, 'UTF-8')), 'hex') avatar, "role" from users where id <> ? order by random() limit 10;`, {
+          replacements: [con._USERID],
+          type: QueryTypes.SELECT
+        })
+        con.send(JSON.stringify({
+          event: 'SUGGESTED_USERS',
+          users
+        }))
+        break
+      }
+      case 'CREATE_CHANNEL': {
+        const channel = (await db.query('select * from create_channel(?, array[?]::uuid[]) id;', {
+          replacements: [data.title, data.users],
+          type: QueryTypes.SELECT
+        }))[0]
+        for (const client of ws.clients) {
+          if (!data.users.includes(client._USERID)) continue
+          client.send(JSON.stringify({
+            event: 'NEW_CHANNEL',
+            channel
+          }))
+        }
       }
     }
   })

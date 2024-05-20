@@ -7,6 +7,7 @@ create type scoring_system as enum ('abstract', 'points');
 create type attachment_type as enum ('image', 'video', 'file', 'sticker');
 create type chat_notif_type as enum ('unread', 'mention');
 
+-- #region ТАБЛИЦЫ
 -- таблица пользователей
 create table users (
   id uuid primary key default gen_random_uuid(),
@@ -77,6 +78,41 @@ create table channel_members (
 
   primary key ("user", channel)
 );
+-- #endregion
+
+-- #region ПРОЦЕДУРЫ
+create or replace function create_channel(
+  _title varchar(128),
+  _users uuid[]
+) returns table (
+  id uuid,
+  title varchar(128),
+  avatar text
+)
+language plpgsql
+as $$
+declare
+  chk_f int;
+  chk_e int = array_length(_users, 1);
+  cur_user uuid;
+  new_data channels%rowtype;
+begin
+  select count(1) into chk_f from users u where u.id = any(_users);
+  if chk_f <> chk_e then
+    raise '% of % users don''t exist', chk_e - chk_f, chk_e;
+  end if;
+
+  insert into channels (title) values (_title) returning * into new_data;
+  foreach cur_user in array _users loop
+    insert into channel_members values (cur_user, new_data.id, 'now');
+  end loop;
+  return query select
+    new_data.id,
+    new_data.title,
+    encode(sha256(convert_to(new_data.id::text, 'UTF-8')), 'hex') avatar
+  ;
+end; $$;
+-- #endregion
 
 -- раздаем разрешения
 grant usage on schema public to tsc_backend;

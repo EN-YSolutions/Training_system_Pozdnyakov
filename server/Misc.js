@@ -58,3 +58,27 @@ export function timeago(ms) {
   else if (ms >= MINUTE) return `${Math.floor(ms / MINUTE)}м`
   else return 'сейчас'
 }
+
+export class Timer {
+  #response
+  #mark
+  constructor (response) {
+    this.#response = response
+    this.#mark = process.hrtime()
+  }
+  lap(metric, description) {
+    const r = process.hrtime(this.#mark)
+    const t = r[0] + Math.round(r[1] / 1e6) / 1e3
+    let _s = metric + ';'
+    if (description) _s += `desc="${description}";`
+    _s += `dur=${t}`
+    this.#apply(_s)
+
+    this.#mark = process.hrtime()
+    return t
+  }
+  #apply(new_part) {
+    const present = this.#response.get('server-timing')
+    this.#response.set('server-timing', (present ? present + ',' : '') + new_part)
+  }
+}
