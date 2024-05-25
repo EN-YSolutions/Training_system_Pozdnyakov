@@ -14,14 +14,15 @@
  * Канал, информация о котором выдается при входе в чат
  * @typedef FeedChannel
  * @prop {string} id UUID канала
- * @prop {string} title Название канала
+ * @prop {string} title Название канала или имя пользователя в ЛС
  * @prop {string} avatar Хеш аватарки канала
- * @prop {number} message_id ID последнего сообщения
- * @prop {string} author UUID автора последнего сообщения
- * @prop {string} username Имя автора последнего сообщения
- * @prop {string} contents Исходный код содержимого последнего сообщения
- * @prop {string} created_at Временная отметка последнего сообщения
- * @prop {number} unread Количество непрочитанных сообщений в канале
+ * @prop {UserRole?} private_role группа прав пользователя в ЛС; `null`, если это канал
+ * @prop {number?} last_id ID последнего сообщения
+ * @prop {string?} last_author_id UUID автора последнего сообщения
+ * @prop {string?} last_author_name Имя автора последнего сообщения
+ * @prop {string?} last_content Исходный код содержимого последнего сообщения
+ * @prop {string?} last_at Временная отметка последнего сообщения
+ * @prop {number} unread_count Количество непрочитанных сообщений в канале
  */
 /**
  * @typedef ChannelMemberProps

@@ -15,10 +15,10 @@ const YEAR = 365 * DAY
  * Данные групп прав пользователей для отображения на клиенте
  */
 export const USER_GROUPS = {
-  student: { icon: null, name: 'Студент' },
-  teacher: { icon: ['pen-nib', 512], name: 'Преподаватель' },
-  curator: { icon: ['graduation-cap', 640], name: 'Куратор' },
-  admin: { icon: ['crown', 576], name: 'Администратор' }
+  student: { icon: ['book-open-cover', '0 -32 660 512'], name: 'Студент' },
+  teacher: { icon: ['pen-nib', '0 0 512 512'], name: 'Преподаватель' },
+  curator: { icon: ['graduation-cap', '0 0 640 512'], name: 'Куратор' },
+  admin: { icon: ['crown', '0 0 576 512'], name: 'Администратор' }
 }
 
 /**

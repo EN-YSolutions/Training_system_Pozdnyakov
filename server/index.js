@@ -122,11 +122,6 @@ app.get('/logout', async (req, res) => {
   res.header('cache-control', 'no-cache')
   if (typeof req.cookies['auth-token'] === 'undefined') return res.redirect(303, '/')
 
-  // проверяем токен
-  const token_data = await Misc.resolveJWT(req.cookies['auth-token'])
-  if (token_data === null) return res.redirect(303, '/')
-  if (Date.now() > token_data.exp * 1000) return res.redirect(303, '/')
-
   res.cookie('auth-token', 'deleted', { maxAge: -1, secure: true, httpOnly: true, domain: process.env.COOKIE_DOMAIN })
     .redirect(303, '/')
 })
@@ -227,24 +222,8 @@ ws.on('connection', con => {
 
         // получаем фид
         // запрос тут огромный, поэтому отформатируем конкатом
-        const channels = await db.query(String.prototype.concat(
-          `select `,
-            `chan.id id,`,
-            `chan.title,`,
-            `encode(sha256(convert_to(chan.id::text, 'UTF-8')), 'hex') avatar,`,
-            `msg.id message_id,`,
-            `msg.contents,`,
-            `coalesce(msg.created_at, '-Infinity') created_at,`,
-            `usr.id author,`,
-            `usr."name" username,`,
-            `(select count(1) from messages where created_at > coalesce((select last_view from acknowledgements where "user" = :id and channel = chan.id), 'epoch') and channel = chan.id)::int unread `,
-          `from channels chan `,
-          `left join lateral (select * from messages where channel = chan.id order by id desc limit 1) msg on msg.channel = chan.id `,
-          `left join lateral (select * from users where id = msg.author) usr on usr.id = msg.author `,
-          `where is_static or chan.id in (select channel from channel_members cm where "user" = :id) `,
-          `order by created_at desc, title asc;`
-        ), {
-          replacements: { id: con._USERID },
+        const channels = await db.query(`select * from get_feed(?::uuid);`, {
+          replacements: [con._USERID],
           type: QueryTypes.SELECT
         })
         con.send(JSON.stringify({
@@ -367,6 +346,18 @@ ws.on('connection', con => {
         })
         con.send(JSON.stringify({
           event: 'SUGGESTED_USERS',
+          target: data.target,
+          users
+        }))
+        break
+      }
+      case 'SEARCH_USERS': {
+        const users = await db.query(`select id, "name", encode(sha256(convert_to(id::text, 'UTF-8')), 'hex') avatar, "role" from users where id <> ? and "name" ~* ? order by "name" asc;`, {
+          replacements: [con._USERID, data.query],
+          type: QueryTypes.SELECT
+        })
+        con.send(JSON.stringify({
+          event: 'SEARCHED_USERS',
           users
         }))
         break
@@ -383,7 +374,18 @@ ws.on('connection', con => {
             channel
           }))
         }
+        break
+      }
+      case 'CREATE_DM': {
+        const dm = (await db.query('sekect * from create_dm(?::uuid, ?::uuid);', {
+          replacements: [con._USERID, data.peer],
+          type: QueryTypes.SELECT
+        }))
+        break
       }
     }
+  })
+  con.on('close', (code, reason) => {
+    console.log(`${con._USERID} disconnected with code ${code}`)
   })
 })

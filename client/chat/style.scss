@@ -28,9 +28,6 @@ h1, h2, h3, h4, h5, h6 {
     vertical-align: -.1em;
   }
 }
-.btn-group {
-  --bs-border-radius: 0;
-}
 
 .navbar {
   background: $header-bg;
@@ -71,6 +68,7 @@ main.container-fluid {
   border-inline-end: none;
 
   &-tools .btn {
+    --bs-btn-border-radius: 0;
     padding-block: .75rem;
   }
 }
@@ -270,8 +268,29 @@ main.container-fluid {
     opacity: .6;
   }
 
-  &-text p:last-child {
-    margin: 0;
+  &.mentioned {
+    background-color: rgba(var(--bs-primary-rgb), .1);
+  }
+
+  &-text {
+    .mention {
+      color: var(--bs-link-color);
+      background-color: rgba(var(--bs-link-color-rgb), .15);
+      display: inline-block;
+      line-height: normal;
+      padding: .05em .15em;
+      cursor: pointer;
+      transition: background-color .2s, color .2s;
+
+      &:hover {
+        color: var(--bs-white);
+        background-color: var(--bs-link-color);
+      }
+    }
+
+    p:last-child {
+      margin: 0;
+    }
   }
 }
 
@@ -300,7 +319,7 @@ main.container-fluid {
   }
 }
 
-#mnc-users {
+.suggested-users {
   display: flex;
   flex-wrap: wrap;
   gap: .25rem .5rem;

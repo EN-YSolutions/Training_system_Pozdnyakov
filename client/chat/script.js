@@ -270,7 +270,7 @@ import './types.js' // типы
           if (msg === null) return
           msg.classList.remove('pending')
           msg.classList.add('edited')
-          msg.querySelector('.message-text').innerHTML = parseMD(data.text)
+          msg.querySelector('.message-text').innerHTML = parseMarkup(data.text)
           msg.querySelector('.message-manage [data-act="edit"]').removeAttribute('disabled')
           break
         }
@@ -280,18 +280,19 @@ import './types.js' // типы
         }
         case 'SUGGESTED_USERS': {
           for (const user of data.users) {
-            const tem = document.querySelector('#temp-suggested').cloneNode(true).content
+            const tem = document.querySelector('#tem-suggested').cloneNode(true).content
             const group = Utils.USER_GROUPS[user.role]
             tem.querySelector('.avatar').src = `/avatars/${user.avatar}`
             tem.querySelector('.user-name').innerText = user.name
             if (group.icon !== null) tem.querySelector('.user-group').innerHTML = String.prototype.concat(
-              `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${group.icon[1]} 512">`,
+              `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${group.icon[1]}">`,
                 `<use href="#fa-${group.icon[0]}"></use>`,
               `</svg>`
             )
             tem.querySelector('.user-group').title = group.name
             tem.querySelector('input').value = user.id
-            document.querySelector('#mnc-users').append(tem)
+            if (data.target === 'modal-new-dm') tem.querySelector('input').type = 'radio'
+            document.querySelector(`#${data.target} .suggested-users`).append(tem)
           }
           break
         }
@@ -331,6 +332,14 @@ import './types.js' // типы
     }
   }
 
+  document.addEventListener('visibilitychange', () => {
+    if (ws.readyState !== ws.OPEN) return
+    ws.send(JSON.stringify({
+      event: 'PRESENCE',
+      online: document.visibilityState === 'visible'
+    }))
+  })
+
   // помечаем сообщения прочитанными при скролле до конца вниз
   // todo: отмечать прочитанные, даже если скролла нет
   document.querySelector('.contents-main').addEventListener('scroll', event => {
@@ -361,17 +370,34 @@ import './types.js' // типы
     _.querySelectorAll('.member').forEach(el => el.remove())
     _.querySelectorAll('#members__count').innerText = '?'
   })
-  // предлагаем пользователей при создании канала
-  document.querySelector('#modal-new-channel').addEventListener('show.bs.modal', () => {
-    ws.send(JSON.stringify({ event: 'SUGGEST_USERS' }))
-  })
-  // удаляем содержимое модали для создания канала при ее закрытии
+
+  // предлагаем пользователей при создании канала и лс
+  document.querySelectorAll('#modal-new-channel, #modal-new-dm').forEach(e => e.addEventListener('show.bs.modal', event => {
+    ws.send(JSON.stringify({ event: 'SUGGEST_USERS', target: event.currentTarget.id }))
+  }))
+  // удаляем содержимое модалей для создания при их закрытии
   document.querySelector('#modal-new-channel').addEventListener('hidden.bs.modal', event => {
     const _ = event.currentTarget
     _.querySelector('#mnc-title').value = ''
-    Array.from(_.querySelector('#mnc-users').children).forEach(el => el.remove())
+    Array.from(_.querySelector('.suggested-users').children).forEach(el => el.remove())
   })
-  document.querySelector('#modal-new-channel .modal-content').addEventListener('submit', function(event) {
+  document.querySelector('#modal-new-dm').addEventListener('hidden.bs.modal', event => {
+    Array.from(event.currentTarget.querySelector('.suggested-users').children).forEach(el => el.remove())
+  })
+  // поиск пользователей в модали лс
+  document.querySelector('#mnd-search').addEventListener('change', event => {
+    ws.send(JSON.stringify({
+      event: 'SEARCH_USERS',
+      query: event.currentTarget.value
+    }))
+  })
+  document.querySelector('#mnd-search').addEventListener('keydown', event => {
+    if (event.code !== 'Enter') return
+    event.preventDefault()
+    event.currentTarget.dispatchEvent(new Event('change'))
+  })
+  // передаем данные на сервер для создания
+  document.querySelector('#modal-new-channel .modal-content').addEventListener('submit', event => {
     event.preventDefault()
     const fd = new FormData(event.target)
     fd.append('users', self.id)
@@ -385,6 +411,14 @@ import './types.js' // типы
         } else obj[key] = val
         return obj
       }, {})
+    }))
+  })
+  document.querySelector('#modal-new-dm .modal-content').addEventListener('submit', event => {
+    event.preventDefault()
+    const fd = new FormData(event.target)
+    ws.send(JSON.stringify({
+      event: 'CREATE_DM',
+      peer: fd.get('users')
     }))
   })
 
@@ -403,20 +437,23 @@ import './types.js' // типы
       document.querySelector('.channels').append(makeChannel(channel))
     }
   }
+  /**
+   * @param {FeedChannel} data
+   */
   function makeChannel(data) {
     // делаем копию шаблона и заполняем ее данными
-    const tem = document.getElementById('temp-channel').cloneNode(true).content
+    const tem = document.getElementById('tem-channel').cloneNode(true).content
     const cont = tem.querySelector('.channel')
     cont.setAttribute('data-id', data.id)
     tem.querySelector('.avatar').src = `/avatars/${data.avatar}`
     tem.querySelector('.title').innerText = data.title
-    if (data.created_at) tem.querySelector('time').dateTime = new Date(data.created_at).toISOString()
-    tem.querySelector('time').innerText = data.created_at
-      ? Utils.timeago(Date.now() - new Date(data.created_at).getTime())
+    if (data.last_at) tem.querySelector('time').dateTime = new Date(data.last_at).toISOString()
+    tem.querySelector('time').innerText = data.last_at
+      ? Utils.timeago(Date.now() - new Date(data.last_at).getTime())
       : ''
-    tem.querySelector('.last-author').innerText = data.username ?? ''
-    tem.querySelector('.last-msg').innerHTML = parseMD(data.contents || 'Сообщений нет', true)
-    if (data.unread) tem.querySelector('.badge').innerText = Utils.getShortNum(data.unread)
+    tem.querySelector('.last-author').innerText = data.last_author_name ?? ''
+    tem.querySelector('.last-msg').innerHTML = parseMarkup(data.last_content || 'Сообщений нет', true)
+    if (+data.unread_count) tem.querySelector('.badge').innerText = Utils.getShortNum(data.unread_count)
 
     // вешаем хандлер на клик, чтобы открывать выбранный канал
     cont.onclick = event => {
@@ -459,23 +496,26 @@ import './types.js' // типы
     const bs_modal = bootstrap.Modal.getOrCreateInstance(modal)
     modal.querySelector('#members__count').innerText = members.length
     for (const member of members) {
-      const tem = document.querySelector('#temp-member').cloneNode(true).content
+      const tem = document.getElementById('tem-member').cloneNode(true).content
+      const subtem = document.getElementById('tem-user').cloneNode(true).content
       const group = Utils.USER_GROUPS[member.role]
       tem.querySelector('.member').setAttribute('data-id', member.id)
-      tem.querySelector('.avatar').src = `/avatars/${member.avatar}`
-      tem.querySelector('.user-name').innerText = member.name
-      if (group.icon !== null) tem.querySelector('.user-group').innerHTML = String.prototype.concat(
-        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${group.icon[1]} 512">`,
+      subtem.querySelector('.avatar').src = `/avatars/${member.avatar}`
+      subtem.querySelector('.user-name .dropdown-toggle').innerText = member.name
+      if (group.icon !== null) subtem.querySelector('.user-group').innerHTML = String.prototype.concat(
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${group.icon[1]}">`,
           `<use href="#fa-${group.icon[0]}"></use>`,
         `</svg>`
       )
-      tem.querySelector('.user-group').title = group.name
+      subtem.querySelector('.user-group').title = group.name
       tem.querySelector('.member-messages').innerText = Utils.xplural(member.messages, ['сообщение', 'сообщения', 'сообщений'])
       if (typeof member.joined_at === 'undefined') tem.querySelector('.member-joined').remove()
       else {
         tem.querySelector('.member-joined time').dateTime = member.joined_at
         tem.querySelector('.member-joined time').innerText = Utils.getMessageStamp(member.joined_at)
       }
+      tem.querySelector('.member-head').append(subtem)
+      new bootstrap.Dropdown(tem.querySelector('.user-name'))
       modal.querySelector('.modal-body').append(tem)
     }
     bs_modal.show()
@@ -486,9 +526,10 @@ import './types.js' // типы
     messages.forEach(e => wrp.append(makeMessage(e)))
   }
   function makeMessage(data) {
-    const tem = document.getElementById('temp-message').cloneNode(true).content
+    const tem = document.getElementById('tem-message').cloneNode(true).content
     const cont = tem.querySelector('.message')
     const text = tem.querySelector('.message-text')
+    const content = parseMarkup(data.contents)
     cont.setAttribute('data-id', data.id)
     if (data.author === self.id) cont.classList.add('self')
     if (data.edited_at) cont.classList.add('edited')
@@ -496,8 +537,9 @@ import './types.js' // типы
     tem.querySelector('.author').innerText = data.username
     tem.querySelector('time').dateTime = new Date(data.created_at).toISOString()
     tem.querySelector('time').innerText = Utils.getMessageStamp(data.created_at)
-    text.innerHTML = parseMD(data.contents)
+    text.innerHTML = content
     Prism.highlightAllUnder(text)
+    if (text.querySelector(`.mention[data-username="${self.login}"]`)) cont.classList.add('mentioned')
 
     tem.querySelector('[data-act="edit"]').addEventListener('click', event => {
       event.currentTarget.setAttribute('disabled', '')
@@ -557,8 +599,18 @@ import './types.js' // типы
     input.value = ''
     input.focus()
   }
-  function parseMD(text, inline = false) {
-    return DOMPurify.sanitize(inline ? marked.parseInline(text) : marked.parse(text))
+  function parseMarkup(text, inline = false) {
+    let markup = inline ? marked.parseInline(text) : marked.parse(text)
+    if (!inline) {
+      markup = markup.replace(/@\w+/ig, match => {
+        const span = document.createElement('span')
+        span.className = 'mention'
+        span.innerText = match
+        span.setAttribute('data-username', match.slice(1))
+        return span.outerHTML
+      })
+    }
+    return DOMPurify.sanitize(markup)
   }
   function addMarkup(type) {
     const field = document.querySelector('#message-input')

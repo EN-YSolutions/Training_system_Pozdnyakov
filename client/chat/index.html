@@ -29,12 +29,18 @@
   <main class="container-fluid">
     <section class="panel">
       <div class="channels"></div>
-      <div class="btn-group panel-tools">
+      <div class="btn-group-vertical panel-tools">
         <button class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#modal-new-channel" disabled>
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-megaphone-fill" viewBox="0 0 16 16">
             <path d="M13 2.5a1.5 1.5 0 0 1 3 0v11a1.5 1.5 0 0 1-3 0zm-1 .724c-2.067.95-4.539 1.481-7 1.656v6.237a25 25 0 0 1 1.088.085c2.053.204 4.038.668 5.912 1.56zm-8 7.841V4.934c-.68.027-1.399.043-2.008.053A2.02 2.02 0 0 0 0 7v2c0 1.106.896 1.996 1.994 2.009l.496.008a64 64 0 0 1 1.51.048m1.39 1.081q.428.032.85.078l.253 1.69a1 1 0 0 1-.983 1.187h-.548a1 1 0 0 1-.916-.599l-1.314-2.48a66 66 0 0 1 1.692.064q.491.026.966.06"/>
           </svg>
           Новый канал
+        </button>
+        <button class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#modal-new-dm">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-envelope-fill" viewBox="0 0 16 16">
+            <path d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414zM0 4.697v7.104l5.803-3.558zM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586zm3.436-.586L16 11.801V4.697z"/>
+          </svg>
+          Новые ЛС
         </button>
       </div>
     </section>
@@ -125,7 +131,27 @@
           </div>
           <div class="form-entry mb-3">
             <label class="form-label">Добавить пользователей:</label>
-            <div id="mnc-users"></div>
+            <div class="suggested-users"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+          <button type="submit" class="btn btn-primary">Создать</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="modal fade" id="modal-new-dm" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <form class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fs-5">Новые личные сообщения</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-entry mb-3">
+            <input type="search" id="mnd-search" class="form-control" placeholder="Поиск пользователей...">
+            <div class="suggested-users mt-2"></div>
           </div>
         </div>
         <div class="modal-footer">
@@ -139,13 +165,14 @@
   <!-- иконки групп прав пользователей -->
   <svg class="hidden" style="position: fixed; top: 0; left: -99px; width: 0; height: 0" xmlns="http://www.w3.org/2000/svg">
     <!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+    <path id="fa-book-open-cover" d="M304 -7v376v-376v376l-208 -40v0v-333v0q1 -16 11 -25q11 -9 26 -7l171 29v0zM90 366l230 46l-230 -46l230 46l230 -46v0q24 -6 26 -31v-345v0l26 -5v0q15 -3 26 6t12 25v367v0q-2 25 -26 31l-294 59v0l-294 -59v0q-24 -6 -26 -31v-367v0q1 -16 12 -25t26 -6l26 5v0v345 v0q2 25 26 31v0zM336 369v-376v376v-376l171 -29v0q15 -2 26 7q10 9 11 25v333v0l-208 40v0z" />
     <path id="fa-pen-nib" d="M368.4 18.3L312.7 74.1 437.9 199.3l55.7-55.7c21.9-21.9 21.9-57.3 0-79.2L447.6 18.3c-21.9-21.9-57.3-21.9-79.2 0zM288 94.6l-9.2 2.8L134.7 140.6c-19.9 6-35.7 21.2-42.3 41L3.8 445.8c-3.8 11.3-1 23.9 7.3 32.4L164.7 324.7c-3-6.3-4.7-13.3-4.7-20.7c0-26.5 21.5-48 48-48s48 21.5 48 48s-21.5 48-48 48c-7.4 0-14.4-1.7-20.7-4.7L33.7 500.9c8.6 8.3 21.1 11.2 32.4 7.3l264.3-88.6c19.7-6.6 35-22.4 41-42.3l43.2-144.1 2.8-9.2L288 94.6z"/>
     <path id="fa-graduation-cap" d="M320 32c-8.1 0-16.1 1.4-23.7 4.1L15.8 137.4C6.3 140.9 0 149.9 0 160s6.3 19.1 15.8 22.6l57.9 20.9C57.3 229.3 48 259.8 48 291.9v28.1c0 28.4-10.8 57.7-22.3 80.8c-6.5 13-13.9 25.8-22.5 37.6C0 442.7-.9 448.3 .9 453.4s6 8.9 11.2 10.2l64 16c4.2 1.1 8.7 .3 12.4-2s6.3-6.1 7.1-10.4c8.6-42.8 4.3-81.2-2.1-108.7C90.3 344.3 86 329.8 80 316.5V291.9c0-30.2 10.2-58.7 27.9-81.5c12.9-15.5 29.6-28 49.2-35.7l157-61.7c8.2-3.2 17.5 .8 20.7 9s-.8 17.5-9 20.7l-157 61.7c-12.4 4.9-23.3 12.4-32.2 21.6l159.6 57.6c7.6 2.7 15.6 4.1 23.7 4.1s16.1-1.4 23.7-4.1L624.2 182.6c9.5-3.4 15.8-12.5 15.8-22.6s-6.3-19.1-15.8-22.6L343.7 36.1C336.1 33.4 328.1 32 320 32zM128 408c0 35.3 86 72 192 72s192-36.7 192-72L496.7 262.6 354.5 314c-11.1 4-22.8 6-34.5 6s-23.5-2-34.5-6L143.3 262.6 128 408z"/>
     <path id="fa-crown" d="M309 106c11.4-7 19-19.7 19-34c0-22.1-17.9-40-40-40s-40 17.9-40 40c0 14.4 7.6 27 19 34L209.7 220.6c-9.1 18.2-32.7 23.4-48.6 10.7L72 160c5-6.7 8-15 8-24c0-22.1-17.9-40-40-40S0 113.9 0 136s17.9 40 40 40c.2 0 .5 0 .7 0L86.4 427.4c5.5 30.4 32 52.6 63 52.6H426.6c30.9 0 57.4-22.1 63-52.6L535.3 176c.2 0 .5 0 .7 0c22.1 0 40-17.9 40-40s-17.9-40-40-40s-40 17.9-40 40c0 9 3 17.3 8 24l-89.1 71.3c-15.9 12.7-39.5 7.5-48.6-10.7L309 106z"/>
   </svg>
 
   <!-- шаблоны некоторых элементов -->
-  <template id="temp-channel"> <!-- канал -->
+  <template id="tem-channel"> <!-- канал -->
     <div class="channel">
       <div class="channel-left">
         <img class="avatar" height="48" width="48">
@@ -159,7 +186,7 @@
       <div class="badge bg-primary"></div>
     </div>
   </template>
-  <template id="temp-message"> <!-- сообщение -->
+  <template id="tem-message"> <!-- сообщение -->
     <div class="message">
       <!-- еще один дропдаун с инструментами -->
       <div class="message-manage dropdown no-arrow">
@@ -185,20 +212,16 @@
       </div>
     </div>
   </template>
-  <template id="temp-member"> <!-- участник канала -->
+  <template id="tem-member"> <!-- участник канала -->
     <div class="member">
-      <div class="member-head">
-        <img class="user-avatar avatar" height="28" width="28">
-        <strong class="user-name"></strong>
-        <span class="user-group"></span>
-      </div>
+      <div class="member-head"></div>
       <div class="member-body">
         <span class="member-joined"><time class="member-joined"></time>;</span>
         <span class="member-messages"></span>
       </div>
     </div>
   </template>
-  <template id="temp-suggested">
+  <template id="tem-suggested">
     <label class="suggested-user">
       <span class="user-avatar-wrp">
         <img class="user-avatar avatar" height="28" width="28">
@@ -207,6 +230,23 @@
       <span class="user-group"></span>
       <input type="checkbox" name="users" value="">
     </label>
+  </template>
+  <template id="tem-user">
+    <img class="user-avatar avatar" height="28" width="28">
+    <span class="dropdown no-arrow user-name">
+      <strong class="dropdown-toggle"></strong>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="#">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-at" viewBox="0 0 16 16">
+            <path d="M13.106 7.222c0-2.967-2.249-5.032-5.482-5.032-3.35 0-5.646 2.318-5.646 5.702 0 3.493 2.235 5.708 5.762 5.708.862 0 1.689-.123 2.304-.335v-.862c-.43.199-1.354.328-2.29.328-2.926 0-4.813-1.88-4.813-4.798 0-2.844 1.921-4.881 4.594-4.881 2.735 0 4.608 1.688 4.608 4.156 0 1.682-.554 2.769-1.416 2.769-.492 0-.772-.28-.772-.76V5.206H8.923v.834h-.11c-.266-.595-.881-.964-1.6-.964-1.4 0-2.378 1.162-2.378 2.823 0 1.737.957 2.906 2.379 2.906.8 0 1.415-.39 1.709-1.087h.11c.081.67.703 1.148 1.503 1.148 1.572 0 2.57-1.415 2.57-3.643zm-7.177.704c0-1.197.54-1.907 1.456-1.907.93 0 1.524.738 1.524 1.907S8.308 9.84 7.371 9.84c-.895 0-1.442-.725-1.442-1.914"/>
+          </svg>
+          Профиль
+        </a></li>
+        <li><a class="dropdown-item" href="#">Личные сообщения</a></li>
+        <li><a class="dropdown-item" href="#">Упомянуть</a></li>
+      </ul>
+    </span>
+    <span class="user-group"></span>
   </template>
 </body>
 </html>
