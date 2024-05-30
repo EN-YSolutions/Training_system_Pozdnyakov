@@ -1,3 +1,5 @@
+@import url(../helpers/bootstrap/style.css);
+
 // некоторые переменные
 // поскольку это константы, их можно использовать как переменные scss
 $header-bg: #2A3D51;
@@ -377,10 +379,6 @@ main.container-fluid {
   display: none;
 }
 
-.emoji-popover .popover-body {
-  padding: 0;
-}
-
 .form-label:has(+ :required):after {
   content: '*';
   display: inline-block;
@@ -401,3 +399,5 @@ main.container-fluid {
   50% { opacity: .9; }
   100% { opacity: .3; }
 }
+
+@import url(../helpers/emoji-panel/style.scss);

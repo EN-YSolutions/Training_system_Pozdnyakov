@@ -1,8 +1,10 @@
 // импортируем необходимые файлы и модули для работы
-import 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js' // бутстрап
-import { Marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js' // парсер маркдауна
-import 'https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js' // санитайзер для парсера
+import '../helpers/external/bootstrap/bundle.js' // бутстрап
+import '../helpers/external/prism/script.js' // подсветка синтаксиса
+import '../helpers/external/dompurify/script.js' // санитайзер для парсера
+import { Marked } from '../helpers/external/marked/script.js' // парсер маркдауна
 import * as Utils from './utils.js' // утилиты
+import EmojiPanel from '../helpers/emoji-panel/script.js' // панель эмодзи
 import './types.js' // типы
 
 // самовызывающаяся функция для создания закрытого скоупа переменных в рантайме
@@ -49,33 +51,38 @@ import './types.js' // типы
   // применяем нужный стиль блоков с подсветкой синтаксиса
   {
     const el = document.createElement('link')
-    el.href = `../helpers/prism.${theme === 'dark' ? 'dark.' : ''}css`
+    el.href = `../helpers/external/prism/style${theme === 'dark' ? '.dark' : ''}.css`
     el.type = 'text/css'
     el.rel = 'stylesheet'
     document.head.append(el)
   }
 
   // панель эмодзи
-  // todo: адекватно подружить панель с бутстрапом
-  // todo: решить проблему с ошибками рендера при повторном открытии панели
-  // панель будет всплывать по нажатию кнопки в бутстраповском поповере
+  const emoji_panel = new EmojiPanel('../helpers/emoji-panel/data.min.json')
+  emoji_panel.onclick = emoji => {
+    if (!document.querySelector('.channel.selected')) return
+    const input = document.querySelector('#message-input')
+    input.value += emoji
+    input.focus()
+  }
+  // панель будет всплывать при нажатии кнопки в бутстраповском поповере
   const emoji_panel_popover = new bootstrap.Popover(document.querySelector('#emojis'), {
     html: true,
     customClass: 'emoji-popover',
     placement: 'top',
-    content: 'foo',
-    offset: [-175, 0],
+    fallbackPlacements: ['bottom', 'left'],
+    content: emoji_panel.wrp,
     trigger: 'manual'
   })
   document.querySelector('#emojis').addEventListener('click', (function(event) {
-    console.log(this)
+    const input = document.querySelector('#message-input')
     this.toggle()
-    if (this._isShown()) { // был открыт, закрывается
-      console.log('closing popover')
-    } else {
-      console.log('opening popover')
-      // this.setContent()
+    if (!this._isShown()) { // был закрыт, открывается
+      event.currentTarget.addEventListener('shown.bs.popover', () => {
+        emoji_panel.scroll_spy.refresh()
+      }, { once: true })
     }
+    input.focus()
   }).bind(emoji_panel_popover))
 
   // биндим кнопку со скрепкой на выбор файлов для прикрепления
@@ -89,6 +96,7 @@ import './types.js' // типы
     if (event.code === 'ArrowUp') {
       const channel = document.querySelector('.channel.selected')
       if (!channel) return
+      if (document.querySelector('#message-input').value) return
       const msg = [...document.querySelectorAll('.message.self')].at(-1)
       msg.querySelector('[data-act="edit"]').setAttribute('disabled', '')
       ws.send(JSON.stringify({

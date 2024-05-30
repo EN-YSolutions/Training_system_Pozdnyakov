@@ -3,9 +3,14 @@
 node_modules
 cert
 
+# некоторые локальные либы не заливаем
+client/helpers/external
+client/helpers/NotoColorEmoji.ttf
+
 # различные тесты
 test
 test.*
+*-test
 
 # убираем маковские мета-файлы
 */**/.DS_Store

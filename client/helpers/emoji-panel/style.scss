@@ -1,0 +1,95 @@
+@font-face {
+  font-family: 'Noto Color Emoji';
+  src: url(/helpers/NotoColorEmoji.ttf);
+}
+
+.emoji-panel {
+  --per-row: 9;
+  --cell-width: 1.5rem;
+  --cell-gap: 0rem;
+  --scrollbar-width: 0px;
+  display: flex;
+  flex-direction: column;
+  height: 300px;
+  max-width: calc(var(--per-row) * var(--cell-width) + (var(--per-row) - 1) * var(--cell-gap) + var(--scrollbar-width));
+
+  .has-emoji {
+    font-family: 'AppleColorEmoji', 'Noto Color Emoji';
+  }
+
+  .ep__header {
+    &-cats {
+      display: flex;
+      justify-content: space-between;
+    }
+    &-cat {
+      flex: 1;
+      text-decoration: none;
+      text-align: center;
+      border-bottom: 3px #0000 solid;
+      padding-bottom: .25rem;
+
+      &:hover {
+        border-bottom-color: rgba(var(--bs-primary-rgb), .1);
+      }
+      &.active {
+        border-bottom-color: var(--bs-primary);
+      }
+    }
+  }
+
+  .ep__list {
+    overflow: scroll;
+    overflow-x: hidden;
+    flex: 1;
+
+    section {
+      display: grid;
+      grid-template-columns: repeat(var(--per-row), var(--cell-width));
+      gap: var(--cell-gap)
+    }
+
+    h4 {
+      grid-column: 1 / -1;
+      margin: 0;
+      position: sticky;
+      top: 0;
+      padding: .25rem .5rem;
+      background: #fff;
+      font-size: 1.15rem;
+    }
+  
+    span {
+      border-radius: .5rem;
+      text-align: center;
+      cursor: pointer;
+
+      &:hover {
+        background: rgba(0 0 0 / .05);
+      }
+    }
+  }
+  .ep__selection {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .5rem;
+    align-items: center;
+    padding-left: .5rem;
+
+    &-preview {
+      font-size: 2rem;
+    }
+    &-name {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-clamp: 2;
+      text-overflow: ellipsis;
+      overflow-x: hidden;
+      font-size: .8rem;
+    }
+  }
+}
+.emoji-popover .popover-body {
+  padding-bottom: 0;
+}
