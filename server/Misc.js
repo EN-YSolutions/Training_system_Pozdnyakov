@@ -1,6 +1,4 @@
 import jwt from 'jsonwebtoken'
-import { readFileSync } from 'fs'
-import dotenv from 'dotenv'
 
 /** Число миллисекунд в минуте */
 export const MINUTE = 60000
@@ -33,7 +31,7 @@ export function handleSendFileErrors(error, response) {
  */
 export function resolveJWT(token) {
   return new Promise((res, rej) => {
-    const secret = dotenv.parse(readFileSync('.env', 'utf8')).JWT_SECRET
+    const secret = process.env.JWT_SECRET
     try {
       res(jwt.verify(token, secret, { algorithms: ['HS256'] }))
     } catch (error) {

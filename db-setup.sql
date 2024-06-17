@@ -5,17 +5,16 @@ create user tsc_backend with encrypted password '...';
 create type user_role as enum ('student', 'teacher', 'curator', 'admin');
 create type scoring_system as enum ('abstract', 'points');
 create type attachment_type as enum ('image', 'video', 'file', 'sticker');
-create type chat_notif_type as enum ('unread', 'mention');
 
 -- #region ТАБЛИЦЫ
--- таблица пользователей
+-- таблица пользователей (общая с порталом)
 create table users (
 	id uuid primary key default gen_random_uuid(),
 	"login" varchar(32) not null unique,
 	"password" char(60) not null,
 	"role" user_role not null default 'student',
-	"name" varchar(128) not null,
-	balance money not null default 0.0,
+	"name" varchar(255) not null,
+	balance numeric(12, 2) not null default 0.0,
 	"scoring_system" scoring_system not null default 'abstract'
 );
 
@@ -29,7 +28,6 @@ create table channels (
 insert into channels values
 	('10000000-0000-4000-0000-000000000000', 'Флудилка', false, true),
 	('10000000-0000-4000-0000-000000000001', 'Общий канал потоков', false, true);
-
 
 -- таблица сообщений
 create table messages (
@@ -50,15 +48,14 @@ create table attachments (
 	created_at timestamptz not null default current_timestamp
 );
 
--- таблица уведомлений чата
-create table chat_notifications (
-	"user" uuid references users(id) on update cascade on delete cascade,
-	channel uuid references channels(id) on update cascade on delete cascade,
-	"type" chat_notif_type not null,
-	"message" int4 references messages(id) on update cascade on delete cascade,
-	created_at timestamptz not null default current_timestamp,
-
-	primary key ("user", channel)
+-- таблица уведомлений (общая с порталом)
+create table notifications (
+	id uuid primary key default gen_random_uuid(),
+	user_id uuid not null references users(id) on update cascade on delete cascade,
+	title varchar(256) not null,
+	"description" text not null,
+	unread bool not null default true,
+	"date" timestamptz not null default current_timestamp
 );
 
 -- таблица меток прочитанного
@@ -84,6 +81,7 @@ create table _feed_template (
 	id uuid,
 	title varchar(128),
 	avatar text,
+	private_id uuid,
 	private_role user_role,
 	last_id int,
 	last_content varchar(1024),
@@ -216,14 +214,14 @@ begin
 		exit when not found;
 
 		-- готовим первый запрос с основными данными
-		stm = format('insert into %I (id, title, avatar, private_role) values', TABLE_NAME);
+		stm = format('insert into %I (id, title, avatar, private_id, private_role) values', TABLE_NAME);
 		if this.is_private then  -- лс требует специфических данных
 			select * from users where id = (
 				select "user" from channel_members cm where "user" <> _user and channel = this.id
 			) into spt;
-			stm = concat(stm, format('(%L, %L, %L, %L);', this.id, spt."name", id2hash(spt.id), spt."role"));
+			stm = concat(stm, format('(%L, %L, %L, %L, %L);', this.id, spt."name", id2hash(spt.id), spt.id, spt."role"));
 		else  -- тут все просто
-			stm = concat(stm, format('(%L, %L, %L, null)', this.id, this.title, id2hash(this.id)));
+			stm = concat(stm, format('(%L, %L, %L, null, null)', this.id, this.title, id2hash(this.id)));
 		end if;
 		execute stm;  -- добавляем запись
 
@@ -249,7 +247,7 @@ begin
 			select count(1) from messages where created_at > coalesce(
 				(select last_view from acknowledgements where "user" = %L and channel = %3$L),
 				''epoch''
-			) and channel = %3$L)::int;', TABLE_NAME, _user, this.id);
+			) and channel = %3$L)::int where id = %3$L;', TABLE_NAME, _user, this.id);
 	end loop;
 	close cur;  -- закрываем курсор
 

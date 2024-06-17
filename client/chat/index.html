@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#2a3d51"> <!-- цвет шапки браузера (мобильный chrome, safari) -->
   <!-- подключаем зависимости -->
   <title>Модуль чата</title>
   <!-- подключаем локальные файлы -->
@@ -17,7 +16,13 @@
 <body>
   <!-- шапка -->
   <nav class="navbar">
-    <a href="#" class="navbar-brand">Образовательный портал</a>
+    <a href="#" class="navbar-brand">
+      <span>Образовательный портал</span>
+      <small>powered by EN-Solutions</small>
+    </a>
+    <button class="btn btn-icon navbar-notifs" data-bs-tooltip title="Уведомления">
+      <svg width="24" height="24" class="bi" viewBox="0 0 16 16"><use href="#bi-bell"></use></svg>
+    </button>
     <div class="dropdown navbar-avatar">
       <img src="https://via.placeholder.com/1x1" class="avatar dropdown-toggle" data-bs-toggle="dropdown" id="self-avatar" height="32" width="32">
       <ul class="dropdown-menu dropdown-menu-end">
@@ -25,34 +30,27 @@
         <li><a class="dropdown-item text-danger" href="/logout">Выйти</a></li>
       </ul>
     </div>
-    </a>
   </nav>
   <!-- основной контейнер -->
   <main class="container-fluid">
     <section class="panel">
       <div class="channels"></div>
-      <div class="btn-group-vertical panel-tools">
-        <button class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#modal-new-channel" disabled>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-megaphone-fill" viewBox="0 0 16 16">
-            <path d="M13 2.5a1.5 1.5 0 0 1 3 0v11a1.5 1.5 0 0 1-3 0zm-1 .724c-2.067.95-4.539 1.481-7 1.656v6.237a25 25 0 0 1 1.088.085c2.053.204 4.038.668 5.912 1.56zm-8 7.841V4.934c-.68.027-1.399.043-2.008.053A2.02 2.02 0 0 0 0 7v2c0 1.106.896 1.996 1.994 2.009l.496.008a64 64 0 0 1 1.51.048m1.39 1.081q.428.032.85.078l.253 1.69a1 1 0 0 1-.983 1.187h-.548a1 1 0 0 1-.916-.599l-1.314-2.48a66 66 0 0 1 1.692.064q.491.026.966.06"/>
-          </svg>
-          Новый канал
+      <div class="btn-group panel-tools">
+        <button class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#modal-new-channel" data-bs-tooltip title="Новый канал" disabled>
+          <svg width="16" height="16" class="bi" viewBox="0 0 16 16"><use href="#bi-megaphone-fill"></use></svg>
         </button>
-        <button class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#modal-new-dm">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-envelope-fill" viewBox="0 0 16 16">
-            <path d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414zM0 4.697v7.104l5.803-3.558zM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586zm3.436-.586L16 11.801V4.697z"/>
-          </svg>
-          Новые ЛС
+        <button class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#modal-new-dm" data-bs-tooltip title="Новые ЛС">
+          <svg width="16" height="16" class="bi" viewBox="0 0 16 16"><use href="#bi-envelope-plus-fill"></use></svg>
         </button>
+        <!-- <button class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#modal-profile">
+          <svg width="16" height="16" class="bi" viewBox="0 0 16 16"><use href="#bi-envelope-plus-fill"></use></svg>
+        </button> -->
       </div>
     </section>
     <section class="contents">
       <!-- полурабочий drag&drop -->
       <div class="drop-here hidden">
-        <svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" fill="currentColor" class="bi bi-file-earmark-arrow-up" viewBox="0 0 16 16">
-          <path d="M8.5 11.5a.5.5 0 0 1-1 0V7.707L6.354 8.854a.5.5 0 1 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 7.707z"/>
-          <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
-        </svg>
+        <svg width="108" height="108" class="bi" viewBox="0 0 16 16"><use href="#bi-file-earmark-arrow-up"></use></svg>
         <p class="drop-here__text">Отпустите файлы, чтобы прикрепить их к сообщению.</p>
       </div>
       <div class="badge bg-secondary">Выберите канал, чтобы начать работать!</div>
@@ -63,9 +61,7 @@
         <!-- дропдаун с инструментами -->
         <div class="contents-manage dropdown no-arrow">
           <button class="btn btn-secondary btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
-              <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"/>
-            </svg>
+            <svg width="16" height="16" class="bi" viewBox="0 0 16 16"><use href="#bi-three-dots-vertical"></use></svg>
           </button>
           <ul class="dropdown-menu">
             <li><button class="dropdown-item" data-act="members" type="button">Список участников</button></li>
@@ -78,25 +74,41 @@
         <div class="messages-wrapper"></div>
       </div>
       <!-- поле ввода и кнопочки -->
-      <div class="contents-piece contents-input input-group hidden">
-        <div class="attachments-gallery"></div> <!-- todo: контейнер для прикрепленных файлов -->
+      <div class="contents-piece contents-input hidden">
+        <div class="attachments-gallery"> <!-- todo: контейнер для прикрепленных файлов -->
+          <!-- <div class="ag-entry">
+            <div class="ag-entry__preview">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-file-earmark-code" viewBox="0 0 16 16">
+                <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+                <path d="M8.646 6.646a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L10.293 9 8.646 7.354a.5.5 0 0 1 0-.708m-1.292 0a.5.5 0 0 0-.708 0l-2 2a.5.5 0 0 0 0 .708l2 2a.5.5 0 0 0 .708-.708L5.707 9l1.647-1.646a.5.5 0 0 0 0-.708"/>
+              </svg>
+            </div>
+            <div class="ag-entry__info">
+              <span>sample.js</span>
+              <span>(2 КБ)</span>
+            </div>
+            <div class="ag-entry__action">
+              <div class="btn btn-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle-fill" viewBox="0 0 16 16">
+                  <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z"/>
+                </svg>
+              </div>
+            </div>
+          </div> -->
+        </div> 
         <input type="file" id="attachments-input" class="hidden" multiple> <!-- todo: инпут для прикрепления файлов -->
-        <button class="btn btn-secondary btn-icon" type="button" id="attach"> <!-- кнопка, связанная с инпутом выше -->
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-paperclip" viewBox="0 0 16 16">
-            <path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0z"/>
-          </svg>
-        </button>
-        <textarea class="form-control" id="message-input" rows="3" maxlength="1024" placeholder="Введите сообщение..."></textarea>
-        <button class="btn btn-secondary btn-icon" id="emojis" type="button">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-emoji-smile-fill" viewBox="0 0 16 16">
-            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16M7 6.5C7 7.328 6.552 8 6 8s-1-.672-1-1.5S5.448 5 6 5s1 .672 1 1.5M4.285 9.567a.5.5 0 0 1 .683.183A3.5 3.5 0 0 0 8 11.5a3.5 3.5 0 0 0 3.032-1.75.5.5 0 1 1 .866.5A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1-3.898-2.25.5.5 0 0 1 .183-.683M10 8c-.552 0-1-.672-1-1.5S9.448 5 10 5s1 .672 1 1.5S10.552 8 10 8"/>
-          </svg>
-        </button>
-        <button class="btn btn-primary btn-icon" id="message-send" type="button">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-circle-fill" viewBox="0 0 16 16">
-            <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0M4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5z"/>
-          </svg>
-        </button>
+        <div class="input-group">
+          <button class="btn btn-secondary btn-icon" type="button" id="attach"> <!-- кнопка, связанная с инпутом выше -->
+            <svg width="16" height="16" class="bi" viewBox="0 0 16 16"><use href="#bi-paperclip"></use></svg>
+          </button>
+          <textarea class="form-control" id="message-input" rows="3" maxlength="1024" placeholder="Введите сообщение..."></textarea>
+          <button class="btn btn-secondary btn-icon" id="emojis" type="button">
+            <svg width="16" height="16" class="bi" viewBox="0 0 16 16"><use href="#bi-emoji-smile-fill"></use></svg>
+          </button>
+          <button class="btn btn-primary btn-icon" id="message-send" type="button">
+            <svg width="16" height="16" class="bi" viewBox="0 0 16 16"><use href="#bi-arrow-right-circle-fill"></use></svg>
+          </button>
+        </div>
       </div>
     </section>
   </main>
@@ -163,6 +175,44 @@
       </form>
     </div>
   </div>
+  <!--<div class="modal fade" id="modal-profile" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fs-5">Профиль пользователя</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="left">
+            <img class="avatar" src="/avatars/dcab6a9623d28ad0fe25c10fc7a802b7366375aa6dd9d2d23ac11a65127e5f00" width="86" height="86">
+          </div>
+          <div class="right">
+            <div class="p-name">Обычный Студент</div>
+            <div class="p-role">Студент <svg class="bi" viewBox="0 -32 660 512"><use href="#fa-book-open-cover"></use></svg></div>
+                <div class="p-btns" style="
+                display: flex;
+                flex-wrap: wrap;
+                gap: .25rem;
+            ">
+            <button class="btn btn-primary btn-sm">Полный профиль</button>
+            <button class="btn btn-primary btn-sm">Перейти в ЛС</button>
+            <div class="dropend">
+              <button class="btn btn-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Поменять роль</button>
+              <ul class="dropdown-menu" style="">
+                  <li class="dropdown-item selected">Студент</li>
+                  <li class="dropdown-item">Преподаватель</li>
+                  <li class="dropdown-item">Куратор</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+          <button type="submit" class="btn btn-primary">Создать</button>
+        </div>
+      </div>
+    </div>
+  </div>-->
 
   <!-- иконки групп прав пользователей -->
   <svg class="hidden" style="position: fixed; top: 0; left: -99px; width: 0; height: 0" xmlns="http://www.w3.org/2000/svg">
@@ -171,6 +221,23 @@
     <path id="fa-pen-nib" d="M368.4 18.3L312.7 74.1 437.9 199.3l55.7-55.7c21.9-21.9 21.9-57.3 0-79.2L447.6 18.3c-21.9-21.9-57.3-21.9-79.2 0zM288 94.6l-9.2 2.8L134.7 140.6c-19.9 6-35.7 21.2-42.3 41L3.8 445.8c-3.8 11.3-1 23.9 7.3 32.4L164.7 324.7c-3-6.3-4.7-13.3-4.7-20.7c0-26.5 21.5-48 48-48s48 21.5 48 48s-21.5 48-48 48c-7.4 0-14.4-1.7-20.7-4.7L33.7 500.9c8.6 8.3 21.1 11.2 32.4 7.3l264.3-88.6c19.7-6.6 35-22.4 41-42.3l43.2-144.1 2.8-9.2L288 94.6z"/>
     <path id="fa-graduation-cap" d="M320 32c-8.1 0-16.1 1.4-23.7 4.1L15.8 137.4C6.3 140.9 0 149.9 0 160s6.3 19.1 15.8 22.6l57.9 20.9C57.3 229.3 48 259.8 48 291.9v28.1c0 28.4-10.8 57.7-22.3 80.8c-6.5 13-13.9 25.8-22.5 37.6C0 442.7-.9 448.3 .9 453.4s6 8.9 11.2 10.2l64 16c4.2 1.1 8.7 .3 12.4-2s6.3-6.1 7.1-10.4c8.6-42.8 4.3-81.2-2.1-108.7C90.3 344.3 86 329.8 80 316.5V291.9c0-30.2 10.2-58.7 27.9-81.5c12.9-15.5 29.6-28 49.2-35.7l157-61.7c8.2-3.2 17.5 .8 20.7 9s-.8 17.5-9 20.7l-157 61.7c-12.4 4.9-23.3 12.4-32.2 21.6l159.6 57.6c7.6 2.7 15.6 4.1 23.7 4.1s16.1-1.4 23.7-4.1L624.2 182.6c9.5-3.4 15.8-12.5 15.8-22.6s-6.3-19.1-15.8-22.6L343.7 36.1C336.1 33.4 328.1 32 320 32zM128 408c0 35.3 86 72 192 72s192-36.7 192-72L496.7 262.6 354.5 314c-11.1 4-22.8 6-34.5 6s-23.5-2-34.5-6L143.3 262.6 128 408z"/>
     <path id="fa-crown" d="M309 106c11.4-7 19-19.7 19-34c0-22.1-17.9-40-40-40s-40 17.9-40 40c0 14.4 7.6 27 19 34L209.7 220.6c-9.1 18.2-32.7 23.4-48.6 10.7L72 160c5-6.7 8-15 8-24c0-22.1-17.9-40-40-40S0 113.9 0 136s17.9 40 40 40c.2 0 .5 0 .7 0L86.4 427.4c5.5 30.4 32 52.6 63 52.6H426.6c30.9 0 57.4-22.1 63-52.6L535.3 176c.2 0 .5 0 .7 0c22.1 0 40-17.9 40-40s-17.9-40-40-40s-40 17.9-40 40c0 9 3 17.3 8 24l-89.1 71.3c-15.9 12.7-39.5 7.5-48.6-10.7L309 106z"/>
+  </svg>
+  <svg class="hidden" style="position: fixed; top: 0; left: -99px; width: 0; height: 0" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="bi-megaphone-fill"><path d="M13 2.5a1.5 1.5 0 0 1 3 0v11a1.5 1.5 0 0 1-3 0zm-1 .724c-2.067.95-4.539 1.481-7 1.656v6.237a25 25 0 0 1 1.088.085c2.053.204 4.038.668 5.912 1.56zm-8 7.841V4.934c-.68.027-1.399.043-2.008.053A2.02 2.02 0 0 0 0 7v2c0 1.106.896 1.996 1.994 2.009l.496.008a64 64 0 0 1 1.51.048m1.39 1.081q.428.032.85.078l.253 1.69a1 1 0 0 1-.983 1.187h-.548a1 1 0 0 1-.916-.599l-1.314-2.48a66 66 0 0 1 1.692.064q.491.026.966.06"/></symbol>
+    <symbol id="bi-envelope-plus-fill">
+      <path d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414zM0 4.697v7.104l5.803-3.558zM6.761 8.83l-6.57 4.026A2 2 0 0 0 2 14h6.256A4.5 4.5 0 0 1 8 12.5a4.49 4.49 0 0 1 1.606-3.446l-.367-.225L8 9.586zM16 4.697v4.974A4.5 4.5 0 0 0 12.5 8a4.5 4.5 0 0 0-1.965.45l-.338-.207z"/>
+      <path d="M16 12.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0m-3.5-2a.5.5 0 0 0-.5.5v1h-1a.5.5 0 0 0 0 1h1v1a.5.5 0 0 0 1 0v-1h1a.5.5 0 0 0 0-1h-1v-1a.5.5 0 0 0-.5-.5"/>
+    </symbol>
+    <symbol id="bi-file-earmark-arrow-up">
+      <path d="M8.5 11.5a.5.5 0 0 1-1 0V7.707L6.354 8.854a.5.5 0 1 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 7.707z"/>
+      <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+    </symbol>
+    <symbol id="bi-three-dots-vertical"><path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"/></symbol>
+    <symbol id="bi-paperclip"><path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0z"/></symbol>
+    <symbol id="bi-emoji-smile-fill"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16M7 6.5C7 7.328 6.552 8 6 8s-1-.672-1-1.5S5.448 5 6 5s1 .672 1 1.5M4.285 9.567a.5.5 0 0 1 .683.183A3.5 3.5 0 0 0 8 11.5a3.5 3.5 0 0 0 3.032-1.75.5.5 0 1 1 .866.5A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1-3.898-2.25.5.5 0 0 1 .183-.683M10 8c-.552 0-1-.672-1-1.5S9.448 5 10 5s1 .672 1 1.5S10.552 8 10 8"/></symbol>
+    <symbol id="bi-arrow-right-circle-fill"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0M4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5z"/></symbol>
+    <symbol id="bi-bell"><path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/></symbol>
+    <!-- <symbol id="bi-"></symbol> -->
   </svg>
 
   <!-- шаблоны некоторых элементов -->
@@ -198,6 +265,7 @@
           </svg>
         </button>
         <ul class="dropdown-menu">
+          <li><button class="dropdown-item" data-act="reply" type="button" disabled>Ответить</button></li>
           <li><button class="dropdown-item" data-act="edit" type="button">Изменить</button></li>
           <li><button class="dropdown-item" data-act="pin" type="button" disabled>Закрепить</button></li>
           <li><button class="dropdown-item text-danger" data-act="delete" type="button">Удалить</button></li>

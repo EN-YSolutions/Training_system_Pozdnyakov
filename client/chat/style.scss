@@ -1,11 +1,7 @@
-@import url(../helpers/bootstrap/style.css);
+@use '../navbar.scss';
+@import url(../helpers/external/bootstrap/style.css);
 
 // некоторые переменные
-// поскольку это константы, их можно использовать как переменные scss
-$header-bg: #2A3D51;
-$header-fg: #FFF;
-
-// а это мы будем изменять в дальнейшем, поэтому используем css
 :root {
   --avatar-border-width: 2px;
   --avatar-border-color: var(--bs-border-color);
@@ -30,25 +26,10 @@ h1, h2, h3, h4, h5, h6 {
     vertical-align: -.1em;
   }
 }
-
-.navbar {
-  background: $header-bg;
-  color: $header-fg;
-  margin-block-end: 1rem;
-  padding: .5rem 1rem;
-
-  &-brand {
-    color: inherit;
-    padding: 0;
-
-    &:hover {
-      color: color-mix(in srgb, $header-fg 80%, #000);
-    }
-  }
-  &-avatar img {
-    --avatar-border-color: #000;
-  }
+svg {
+  fill: currentColor;
 }
+
 main.container-fluid {
   flex: 1;
   min-height: 0;
@@ -80,8 +61,10 @@ main.container-fluid {
   overflow: auto;
 }
 .channel {
+  --bgc: var(--bs-body-bg);
   display: flex;
   gap: .35rem;
+  background-color: var(--bgc);
   transition: background-color .2s linear;
   cursor: pointer;
   user-select: none;
@@ -89,9 +72,27 @@ main.container-fluid {
   border-block-end: 1px var(--bs-border-color) solid;
 
   &:hover, &.selected {
-    background-color: rgba(var(--bs-primary-rgb), .1);
+    --bgc: color-mix(in srgb, var(--bs-body-bg), var(--bs-primary) 10%);
     .avatar {
       --avatar-border-color: var(--bs-primary);
+    }
+  }
+
+  &.online .channel-left {
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 48px; left: 48px;
+      width: .75rem;
+      aspect-ratio: 1;
+      translate: -90% -90%;
+      background-color: var(--bs-primary);
+      border: 3px var(--bgc) solid;
+      border-radius: 100%;
+      box-sizing: content-box;
+      transition: border-color .2s linear;
     }
   }
 
@@ -186,7 +187,7 @@ main.container-fluid {
     display: flex;
     align-items: center;
     gap: .25rem;
-    border-block-end: 1px var(--bs-border-color) solid;
+    border-block-end: 2px var(--bs-border-color) solid;
     padding-inline-start: .25rem;
 
     .avatar {
@@ -218,12 +219,52 @@ main.container-fluid {
   }
   &-input {
     margin: .25rem 0 0 0;
+    border-block-start: 2px var(--bs-border-color) solid;
+
     textarea {
       resize: none;
       line-height: 1.25;
     }
     button {
       padding: 0 .5rem;
+    }
+  }
+}
+
+.attachments-gallery {
+  max-height: calc(3 * 38px);
+  overflow: auto;
+}
+
+.ag-entry {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .5rem;
+  padding-inline-start: .5rem;
+
+  &__preview {
+    padding: .25rem 0;
+  }
+  &__info {
+    display: flex;
+    gap: .25em;
+
+    span:first-child {
+      font-weight: bold;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  &__action {
+    margin-inline-start: auto;
+
+    .btn {
+      color: var(--bs-red);
+
+      &:hover, &:active, &:focus {
+        color: color-mix(in srgb, var(--bs-red), #000 33%);
+      }
     }
   }
 }

@@ -1,0 +1,36 @@
+$header-bg: var(--bs-body-bg);
+$header-fg: var(--bs-body-color);
+
+.navbar {
+  background: $header-bg;
+  color: $header-fg;
+  margin-block-end: 1rem;
+  padding: .5rem 1rem;
+  box-shadow: 0 0 6px var(--bs-navbar-color);
+
+  &-brand {
+    color: inherit;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+
+    &:hover {
+      color: color-mix(in srgb, $header-bg 70%, $header-fg);
+    }
+
+    span {
+      line-height: 1;
+    }
+    small {
+      font-size: .5em;
+      line-height: 1;
+      text-align: right;
+      opacity: .4;
+      font-style: italic;
+    }
+  }
+  &-notifs {
+    padding: 0;
+    margin: 0 1rem 0 auto;
+  }
+}

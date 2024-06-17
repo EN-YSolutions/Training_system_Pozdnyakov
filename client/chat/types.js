@@ -16,6 +16,7 @@
  * @prop {string} id UUID канала
  * @prop {string} title Название канала или имя пользователя в ЛС
  * @prop {string} avatar Хеш аватарки канала
+ * @prop {string?} private_id UUID собеседника в ЛС; `null`, если это канал
  * @prop {UserRole?} private_role группа прав пользователя в ЛС; `null`, если это канал
  * @prop {number?} last_id ID последнего сообщения
  * @prop {string?} last_author_id UUID автора последнего сообщения

@@ -18,6 +18,8 @@ import './types.js' // типы
     return theme
   })();
 
+  ;[...document.querySelectorAll('[data-bs-tooltip]')].forEach(e => new bootstrap.Tooltip(e))
+
   ;(function checkDependencies() {
     const packages = ['Picker', 'Bootstrap', 'Marked', 'DOMPurify']
     const state = [
@@ -31,10 +33,17 @@ import './types.js' // типы
 
   // готовим парсер маркдауна и сочетания клавич
   const marked = new Marked()
+  marked.use({
+    // этот фрагмент делает "вжух", и все картинки с html превращаются в тыкву
+    extensions: [
+      { name: 'image', renderer(token) { return token.raw.replace(token.href, match => `<a href="${match}">${match}</a>`) } },
+      { name: 'html', renderer(token) { return token.raw.replace(/[<>]/g, match => ({'<':'&lt;','>':'&gt;'}[match])) } },
+    ]
+  })
   const MARKUP_BINDS = {
     KeyB: 'bold', KeyI: 'italic',
     KeyS: 'strike', KeyM: 'mono',
-    KeyL: 'link'
+    KeyL: 'link', KeyK: 'code'
   }
 
   // получаем данные пользователя
@@ -62,8 +71,14 @@ import './types.js' // типы
   emoji_panel.onclick = emoji => {
     if (!document.querySelector('.channel.selected')) return
     const input = document.querySelector('#message-input')
-    input.value += emoji
+    const sel_start = input.selectionStart
+    const sel_end = input.selectionEnd
+    const val = input.value
+
+    input.value = val.slice(0, sel_start) + emoji + val.slice(sel_end)
     input.focus()
+    input.selectionStart = sel_start
+    input.selectionEnd = sel_end
   }
   // панель будет всплывать при нажатии кнопки в бутстраповском поповере
   const emoji_panel_popover = new bootstrap.Popover(document.querySelector('#emojis'), {
@@ -137,34 +152,44 @@ import './types.js' // типы
   })
 
   // обработчик drag&drop
-  // todo: загрузка файлов на сервер и отображение миниатюр на клиенте
+  // TODO: загрузка файлов на сервер и отображение миниатюр на клиенте
   {
-    const body = document.body
     const cont = document.querySelector('.contents')
-    body.addEventListeners('dragenter dragover dragleave drop', Utils.preventDefaults)
+    document.body.addEventListeners('dragenter dragover dragleave drop', Utils.preventDefaults)
     cont.addEventListeners('dragenter dragover dragleave drop', Utils.preventDefaults)
-    cont.addEventListener('dragenter', () => cont.classList.add('dropping'))
+    cont.addEventListener('dragenter', () => {
+      if (!checkChannel()) return
+      cont.classList.add('dropping')
+    })
     cont.addEventListeners('dragleave drop', e => {
+      if (!checkChannel()) return
       if (!e.target.className.startsWith('contents')) return
       cont.classList.remove('dropping')
     })
-    cont.addEventListeners('dragend drop', event => {
+    cont.addEventListeners('dragend drop', handleFiles)
+    document.querySelector('#attachments-input').addEventListener('change', handleFiles)
+
+    function checkChannel() { return document.querySelector('.channel.selected') !== null }
+    function handleFiles(event) {
+      if (!checkChannel()) return
       const dataurls = []
-      const files = event.dataTransfer.files
+      /** @type {FileList}*/ const files = (event instanceof DragEvent ? event.dataTransfer.files : event.target.files)
       for (const file of files) {
-        const reader = new FileReader()
-        reader.addEventListener('load', event => {
-          const url = event.target.result
-          dataurls.push({ type: file.type, url })
-        })
-        reader.readAsDataURL(file)
+
+        // if (file.type.match(/^image\//)) {}
+        // const reader = new FileReader()
+        // reader.addEventListener('load', event => {
+        //   const url = event.target.result
+        //   dataurls.push({ name: makeUUID() + file.name.match(/\.\w+$/), type: file.type, url })
+        // })
+        // reader.readAsDataURL(file)
       }
       const timer = setInterval(() => {
         if (dataurls.length !== files.length) return
         console.log(dataurls)
         clearInterval(timer)
       }, 1000)
-    })
+    }
   }
 
   // обновляем счетчики минут там, где это необходимо
@@ -241,6 +266,21 @@ import './types.js' // типы
           msg.classList.remove('pending')
           msg.setAttribute('data-id', data.id)
           msg.removeAttribute('data-ticket')
+
+          const channel = document.querySelector(`.channel[data-id="${data.channel}"]`)
+          if (channel) { // обновляем миниатюру
+            document.querySelector('.channels').prepend(channel)
+            channel.setAttribute('data-msg-id', data.id)
+            channel.querySelector('.timeago').dateTime = data.created_at
+            channel.querySelector('.timeago').innerText = 'сейчас'
+            channel.querySelector('.last-author').innerText = self.name
+            channel.querySelector('.last-msg').innerHTML = parseMarkup(data.contents, true)
+          }
+
+          ws.send(JSON.stringify({
+            event: 'ACKNOWLEDGEMENT',
+            channel: data.channel
+          }))
           break
         }
         case 'RAW_MESSAGE': { // код выбранного сообщения (для редактирования)
@@ -252,34 +292,67 @@ import './types.js' // типы
           break
         }
         case 'NEW_MESSAGE': { // новое чужое сообщение
-          if (data.channel !== document.querySelector('.channel.selected')?.getAttribute('data-id')) return
-          document.querySelector('.messages-wrapper').append(makeMessage(data))
-          Utils.scrollToBottom()
+          const channel = document.querySelector(`.channel[data-id="${data.channel}"]`)
+          if (channel) { // обновляем миниатюру канала
+            const badge = channel.querySelector('.badge')
+            document.querySelector('.channels').prepend(channel)
+            badge.innerText = (parseInt(badge.innerText) || 0) + 1
+            channel.setAttribute('data-msg-id', data.id)
+            channel.querySelector('.timeago').dateTime = data.created_at
+            channel.querySelector('.timeago').innerText = 'сейчас'
+            channel.querySelector('.last-author').innerText = data.name
+            channel.querySelector('.last-msg').innerHTML = parseMarkup(data.contents, true)
+          }
+          // канал открыт
+          if (channel.classList.contains('selected')) {
+            const wrp = document.querySelector('.messages-wrapper')
+            if (!document.querySelectorAll('.message').length) // это первое сообщение
+              wrp.querySelector('.badge').remove()
+            wrp.append(makeMessage(data))
+            channel.querySelector('.badge').innerText = ''
+            Utils.scrollToBottom()
+          }
           break
         }
         case 'DELETE': { // удаление сообщения
           if (data.type !== 'MESSAGE') return // предполагается, что удалять можно будет не только сообщения
           const msg = document.querySelector(`.message[data-id="${data.target}"]`)
-          if (msg === null) return // такого сообщения нет
-          msg.remove()
-          if (!document.querySelectorAll('.message').length) { // это было последнее сообщение
-            const wrp = document.querySelector('.messages-wrapper')
-            const badge = document.createElement('div')
-            badge.className = 'empty-channel-badge badge bg-secondary'
-            badge.innerText = 'В этом канале нет сообщений...'
-            wrp.append(badge)
+          if (msg !== null) { // такого сообщения нет
+            msg.remove()
+            if (!document.querySelectorAll('.message').length) { // это было последнее сообщение
+              const wrp = document.querySelector('.messages-wrapper')
+              const badge = document.createElement('div')
+              badge.className = 'empty-channel-badge badge bg-secondary'
+              badge.innerText = 'В этом канале нет сообщений...'
+              wrp.append(badge)
+            }
+          }
+          const channel = document.querySelector(`.channel[data-msg-id="${data.target}"]`)
+          if (channel !== null) { // обновляем миниатюру
+            const badge = channel.querySelector('.badge')
+            document.querySelector('.channels').prepend(channel)
+            badge.innerText = (parseInt(badge.innerText) || 1) - 1 || ''
+            channel.removeAttribute('data-msg-id')
+            channel.querySelector('.last-author').innerText = ''
+            channel.querySelector('.last-msg').innerText = 'Сообщение было удалено'
+            channel.querySelector('.timeago').dateTime = new Date().toISOString()
+            channel.querySelector('.timeago').innerText = 'сейчас'
           }
           break
         }
         case 'EDIT': { // редактирование сообщения; общий смысл аналогичен DELETE
           if (data.type !== 'MESSAGE') return
           const msg = document.querySelector(`.message[data-id="${data.target}"]`)
-          console.log(msg)
-          if (msg === null) return
-          msg.classList.remove('pending')
-          msg.classList.add('edited')
-          msg.querySelector('.message-text').innerHTML = parseMarkup(data.text)
-          msg.querySelector('.message-manage [data-act="edit"]').removeAttribute('disabled')
+          if (msg) {
+            msg.classList.remove('pending')
+            msg.classList.add('edited')
+            msg.querySelector('.message-text').innerHTML = parseMarkup(data.text)
+            msg.querySelector('.message-manage [data-act="edit"]').removeAttribute('disabled')
+          }
+          const channel = document.querySelector(`.channel[data-msg-id="${data.target}"]`)
+          if (channel) { // обновляем миниатюру
+            channel.querySelector('.last-msg').innerHTML = parseMarkup(data.text, true)
+          }
           break
         }
         case 'MEMBERS': { // просмотр участников канала
@@ -306,7 +379,15 @@ import './types.js' // типы
         }
         case 'NEW_CHANNEL': {
           bootstrap.Modal.getOrCreateInstance(document.querySelector('#modal-new-channel')).hide()
+          bootstrap.Modal.getOrCreateInstance(document.querySelector('#modal-new-dm')).hide()
           document.querySelector('.channels').prepend(makeChannel(data.channel))
+          break
+        }
+        case 'PRESENCE': {
+          const channel = document.querySelector(`.channel[data-peer="${data.user}"]`)
+          if (!channel) return
+          if (data.online) channel.classList.add('online')
+          else channel.classList.remove('online')
           break
         }
       }
@@ -314,6 +395,13 @@ import './types.js' // типы
 
     // при разрыве соединения
     ws.onclose = event => {
+      const reasons = {
+        0x03ee: 'Ошибка сервера или проблемы с сетью',
+        0x1000: 'Подпись токена аутентификации недействительна',
+        0x1001: 'Токен аутентификации просрочен',
+        0x1002: 'Попытка использования чужого токена аутентификации',
+        0x100f: 'Подключение без подписи запрещено'
+      }
       console.log('Socket closed:', event.code)
 
       // создаем тост с оповещением
@@ -323,14 +411,15 @@ import './types.js' // типы
       toast.setAttribute('data-bs-autohide', false)
       toast.innerHTML = String.prototype.concat(
         `<div class="toast-header">`,
-          `<strong class="me-auto">Сервер отключился!</strong>`,
+          `<strong class="me-auto">Соединение потеряно!</strong>`,
           `<time class="timeago" datetime="${new Date().toISOString()}">сейчас</time>`,
-          `<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>`,
+          `<button type="button" class="btn-close" data-bs-dismiss="toast"></button>`,
         `</div>`,
         `<div class="toast-body">`,
-          `<div>Код закрытия: ${event.code}</div>`,
+          `<div>${reasons[event.code] || 'Причина неизвестна'}</div>`,
+          `<small class="text-body-tertiary">Код: 0x${event.code.toString(16).padStart(4, '0').toUpperCase()}</small>`,
           `<div class="mt-2 pt-2 border-top">`,
-            `<button type="button" class="btn btn-primary btn-sm">Перезагрузить</button>`,
+            `<button type="button" class="btn btn-primary btn-sm" onclick="location.reload()">Перезагрузить</button>`,
           `</div>`,
         `</div>`
       )
@@ -453,6 +542,8 @@ import './types.js' // типы
     const tem = document.getElementById('tem-channel').cloneNode(true).content
     const cont = tem.querySelector('.channel')
     cont.setAttribute('data-id', data.id)
+    cont.setAttribute('data-msg-id', data.last_id)
+    if (data.private_id) cont.setAttribute('data-peer', data.private_id)
     tem.querySelector('.avatar').src = `/avatars/${data.avatar}`
     tem.querySelector('.title').innerText = data.title
     if (data.last_at) tem.querySelector('time').dateTime = new Date(data.last_at).toISOString()
@@ -539,24 +630,33 @@ import './types.js' // типы
     const text = tem.querySelector('.message-text')
     const content = parseMarkup(data.contents)
     cont.setAttribute('data-id', data.id)
+    cont.setAttribute('data-author', data.author)
     if (data.author === self.id) cont.classList.add('self')
     if (data.edited_at) cont.classList.add('edited')
     tem.querySelector('.avatar').src = `/avatars/${data.avatar}`
-    tem.querySelector('.author').innerText = data.username
+    tem.querySelector('.author').innerText = data.name
     tem.querySelector('time').dateTime = new Date(data.created_at).toISOString()
     tem.querySelector('time').innerText = Utils.getMessageStamp(data.created_at)
     text.innerHTML = content
     Prism.highlightAllUnder(text)
     if (text.querySelector(`.mention[data-username="${self.login}"]`)) cont.classList.add('mentioned')
 
-    tem.querySelector('[data-act="edit"]').addEventListener('click', event => {
+    ;(function applyRights() {
+      if (self.role !== 'student') return
+      tem.querySelector('[data-act="pin"]').remove()
+      if (data.author === self.id) return
+      tem.querySelector('[data-act="edit"]').remove()
+      tem.querySelector('[data-act="delete"]').remove()
+    })()
+
+    tem.querySelector('[data-act="edit"]')?.addEventListener('click', event => {
       event.currentTarget.setAttribute('disabled', '')
       ws.send(JSON.stringify({
         event: 'RAW_MESSAGE',
         message: event.currentTarget.takeNthParent(4).getAttribute('data-id')
       }))
     })
-    tem.querySelector('[data-act="delete"]').addEventListener('click', event => {
+    tem.querySelector('[data-act="delete"]')?.addEventListener('click', event => {
       event.currentTarget.setAttribute('disabled', '')
       ws.send(JSON.stringify({
         event: 'DELETE',
@@ -593,8 +693,9 @@ import './types.js' // типы
         ticket
       }))
       const msg = makeMessage({
+        author: self.id,
         avatar: self.avatar,
-        author: self.name,
+        name: self.name,
         created_at: Date.now(),
         contents: text
       })
@@ -633,11 +734,23 @@ import './types.js' // типы
       case 'strike': str = `~$1~`; break
       case 'mono': str = `\`$1\``; break
       case 'link': str = `[$1](https://)`; break
+      case 'code': str = `\`\`\`\n$1\n\`\`\``; offset = 4; break
       default: offset = 0
     }
     field.value = field.value.slice(0, sel_start) + str.replace('$1', selection) + field.value.slice(sel_end)
     field.focus()
     field.selectionStart = sel_start + offset
     field.selectionEnd = sel_end + offset
+  }
+  function makeUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxx'.replace(/x/g, () => Math.floor(Math.random() * 16).toString(16))
+  }
+  function getFileIcon(ext) {
+    let name = 'bi-file-earmark-'
+    if (name.match(/^image\//)) name += 'image'
+    else if (name.match(/^audio\//)) name += 'music'
+    else if (name.match(/^video\//)) name += 'play'
+    else if (name.match(/spreadsheet/)) name += 'spreadsheet'
+    else if (name.match(/presentation/)) name += 'presentation'
   }
 })();

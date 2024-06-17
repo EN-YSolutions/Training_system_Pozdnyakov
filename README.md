@@ -97,6 +97,7 @@ npm start
 | `0x1000` | `4096` | Плохая подпись
 | `0x1001` | `4097` | Токен просрочен
 | `0x1002` | `4098` | Подмена токена
+| `0x100F` | `4111` | Нет тикета
 
 [Websocket]:  https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API
 [Bootstrap]:  https://getbootstrap.com

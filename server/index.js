@@ -205,6 +205,9 @@ app.get('/*.scss', (req, res) => {
 // поднимаем сервер для вебсокетов на базе существующего
 const ws = new WebSocketServer({ server, path: '/ws' })
 ws.on('connection', con => {
+  // попытка в защиту от некоторых хитровыдуманных
+  const hs_timer = setTimeout(() => con.close(0x100f), 1000)
+
   // обрабатываем входящие сообщения
   con.on('message', async raw => {
     // парсим данные
@@ -213,6 +216,7 @@ ws.on('connection', con => {
 
     switch (data.event) { // обрабатываем события по их названиям
       case 'HANDSHAKE': { // запрос на подключение
+        clearTimeout(hs_timer)
         // проверяем тикет
         const token_data = await Misc.resolveJWT(data.ticket)
         if (token_data === null) return con.close(0x1000)
@@ -221,7 +225,6 @@ ws.on('connection', con => {
         con._USERID = token_data.sub // запоминаем айди пользователя в объекте подключения
 
         // получаем фид
-        // запрос тут огромный, поэтому отформатируем конкатом
         const channels = await db.query(`select * from get_feed(?::uuid);`, {
           replacements: [con._USERID],
           type: QueryTypes.SELECT
@@ -230,11 +233,19 @@ ws.on('connection', con => {
           event: 'FEED',
           feed: channels
         }))
+        for (const client of ws.clients) {
+          if (client._USERID === con._USERID) continue
+          client.send(JSON.stringify({
+            event: 'PRESENCE',
+            online: true,
+            user: con._USERID
+          }))
+        }
         break
       }
       case 'CHANNEL': { // пользователь открыл канал
         // собираем сообщения
-        const messages = await db.query(`select *, (select "name" from users where id = author) username, encode(sha256(convert_to(author::text, 'UTF-8')), 'hex') avatar from messages where channel = ? order by created_at desc, id desc limit 50;`, {
+        const messages = await db.query(`select *, (select "name" from users where id = author), encode(sha256(convert_to(author::text, 'UTF-8')), 'hex') avatar from messages where channel = ? order by created_at desc, id desc limit 50;`, {
           replacements: [data.channel_id],
           type: QueryTypes.SELECT
         })
@@ -259,6 +270,8 @@ ws.on('connection', con => {
           event: 'MESSAGE',
           id: message.id,
           created_at: message.created_at,
+          channel: data.channel_id,
+          contents: data.text,
           ticket: data.ticket
         }))
         // всем остальным рассылаем другой ивент, чтобы сообщение появилось в принципе
@@ -268,7 +281,7 @@ ws.on('connection', con => {
             event: 'NEW_MESSAGE',
             ...message,
             avatar: createHash('sha256').update(message.author).digest('hex'),
-            author: message.name
+            author: con._USERID
           }))
         })
         break
@@ -363,7 +376,7 @@ ws.on('connection', con => {
         break
       }
       case 'CREATE_CHANNEL': {
-        const channel = (await db.query('select * from create_channel(?, array[?]::uuid[]) id;', {
+        const channel = (await db.query('select * from create_channel(?, array[?]::uuid[]);', {
           replacements: [data.title, data.users],
           type: QueryTypes.SELECT
         }))[0]
@@ -377,15 +390,52 @@ ws.on('connection', con => {
         break
       }
       case 'CREATE_DM': {
-        const dm = (await db.query('sekect * from create_dm(?::uuid, ?::uuid);', {
-          replacements: [con._USERID, data.peer],
+        const users = [con._USERID, data.peer]
+        const dm = (await db.query('select * from create_dm(?::uuid, ?::uuid);', {
+          replacements: users,
           type: QueryTypes.SELECT
-        }))
+        }))[0]
+        console.log(dm)
+
+        const genData = peer_ind => {
+          const key = `u${peer_ind}_`
+          return {
+            event: 'NEW_CHANNEL',
+            channel: {
+              id: dm.id,
+              title: dm[`${key}name`],
+              avatar: dm[`${key}avatar`],
+              private_id: dm[`${key}id`],
+              private_role: dm[`${key}role`]
+            }
+          }
+        }
+
+        const peer = Array.from(ws.clients).find(f => f._USERID === data.peer)
+        con.send(JSON.stringify(genData(2)))
+        peer.send(JSON.stringify(genData(1)))
+        break
+      }
+      case 'PRESENCE': {
+        for (const client of ws.clients) {
+          if (client._USERID === con._USERID) continue
+          client.send(JSON.stringify({
+            ...data,
+            user: con._USERID
+          }))
+        }
         break
       }
     }
   })
   con.on('close', (code, reason) => {
     console.log(`${con._USERID} disconnected with code ${code}`)
+    for (const client of ws.clients) {
+      client.send(JSON.stringify({
+        event: 'PRESENCE',
+        online: false,
+        user: con._USERID
+      }))
+    }
   })
 })
