@@ -39,12 +39,10 @@
         <button class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#modal-new-channel" data-bs-tooltip title="Новый канал" disabled>
           <svg width="16" height="16" class="bi" viewBox="0 0 16 16"><use href="#bi-megaphone-fill"></use></svg>
         </button>
-        <button class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#modal-new-dm" data-bs-tooltip title="Новые ЛС">
+        <button class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#modal-new-dm" data-bs-tooltip title="Новые ЛС" disabled>
           <svg width="16" height="16" class="bi" viewBox="0 0 16 16"><use href="#bi-envelope-plus-fill"></use></svg>
         </button>
-        <!-- <button class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#modal-profile">
-          <svg width="16" height="16" class="bi" viewBox="0 0 16 16"><use href="#bi-envelope-plus-fill"></use></svg>
-        </button> -->
+        <!-- <button class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#modal-sample">S</button> -->
       </div>
     </section>
     <section class="contents">
@@ -75,28 +73,8 @@
       </div>
       <!-- поле ввода и кнопочки -->
       <div class="contents-piece contents-input hidden">
-        <div class="attachments-gallery"> <!-- todo: контейнер для прикрепленных файлов -->
-          <!-- <div class="ag-entry">
-            <div class="ag-entry__preview">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-file-earmark-code" viewBox="0 0 16 16">
-                <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
-                <path d="M8.646 6.646a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L10.293 9 8.646 7.354a.5.5 0 0 1 0-.708m-1.292 0a.5.5 0 0 0-.708 0l-2 2a.5.5 0 0 0 0 .708l2 2a.5.5 0 0 0 .708-.708L5.707 9l1.647-1.646a.5.5 0 0 0 0-.708"/>
-              </svg>
-            </div>
-            <div class="ag-entry__info">
-              <span>sample.js</span>
-              <span>(2 КБ)</span>
-            </div>
-            <div class="ag-entry__action">
-              <div class="btn btn-link">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle-fill" viewBox="0 0 16 16">
-                  <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z"/>
-                </svg>
-              </div>
-            </div>
-          </div> -->
-        </div> 
-        <input type="file" id="attachments-input" class="hidden" multiple> <!-- todo: инпут для прикрепления файлов -->
+        <div class="attachments-gallery"></div>
+        <input type="file" id="attachments-input" class="hidden" multiple> <!-- TODO инпут для прикрепления файлов -->
         <div class="input-group">
           <button class="btn btn-secondary btn-icon" type="button" id="attach"> <!-- кнопка, связанная с инпутом выше -->
             <svg width="16" height="16" class="bi" viewBox="0 0 16 16"><use href="#bi-paperclip"></use></svg>
@@ -175,7 +153,7 @@
       </form>
     </div>
   </div>
-  <!--<div class="modal fade" id="modal-profile" tabindex="-1">
+  <div class="modal fade" id="modal-profile" tabindex="-1">
     <div class="modal-dialog modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
@@ -183,36 +161,44 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <div class="left">
-            <img class="avatar" src="/avatars/dcab6a9623d28ad0fe25c10fc7a802b7366375aa6dd9d2d23ac11a65127e5f00" width="86" height="86">
+          <div class="mp-left">
+            <img class="avatar" width="86" height="86">
           </div>
-          <div class="right">
-            <div class="p-name">Обычный Студент</div>
-            <div class="p-role">Студент <svg class="bi" viewBox="0 -32 660 512"><use href="#fa-book-open-cover"></use></svg></div>
-                <div class="p-btns" style="
-                display: flex;
-                flex-wrap: wrap;
-                gap: .25rem;
-            ">
-            <button class="btn btn-primary btn-sm">Полный профиль</button>
-            <button class="btn btn-primary btn-sm">Перейти в ЛС</button>
-            <div class="dropend">
-              <button class="btn btn-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Поменять роль</button>
-              <ul class="dropdown-menu" style="">
-                  <li class="dropdown-item selected">Студент</li>
-                  <li class="dropdown-item">Преподаватель</li>
-                  <li class="dropdown-item">Куратор</li>
-              </ul>
+          <div class="mp-right">
+            <div class="mp-name"></div>
+            <div class="mp-role"></div>
+            <div class="mp-btns" style="display: flex;flex-wrap: wrap;gap: .25rem;">
+              <button class="btn btn-primary btn-sm">Полный профиль</button>
+              <button class="btn btn-primary btn-sm">Перейти в ЛС</button>
+              <div class="dropend">
+                <button class="btn btn-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">Поменять роль</button>
+                <ul class="dropdown-menu">
+                  <li class="dropdown-item" data-role="student">Студент</li>
+                  <li class="dropdown-item" data-role="teacher">Преподаватель</li>
+                  <li class="dropdown-item" data-role="curator">Куратор</li>
+                  <li class="dropdown-item disabled" data-role="admin">Администратор</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-          <button type="submit" class="btn btn-primary">Создать</button>
         </div>
       </div>
     </div>
-  </div>-->
+  </div>
+  <div class="modal fade" id="modal-message" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fs-5">Сообщение</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- иконки групп прав пользователей -->
   <svg class="hidden" style="position: fixed; top: 0; left: -99px; width: 0; height: 0" xmlns="http://www.w3.org/2000/svg">
@@ -222,6 +208,7 @@
     <path id="fa-graduation-cap" d="M320 32c-8.1 0-16.1 1.4-23.7 4.1L15.8 137.4C6.3 140.9 0 149.9 0 160s6.3 19.1 15.8 22.6l57.9 20.9C57.3 229.3 48 259.8 48 291.9v28.1c0 28.4-10.8 57.7-22.3 80.8c-6.5 13-13.9 25.8-22.5 37.6C0 442.7-.9 448.3 .9 453.4s6 8.9 11.2 10.2l64 16c4.2 1.1 8.7 .3 12.4-2s6.3-6.1 7.1-10.4c8.6-42.8 4.3-81.2-2.1-108.7C90.3 344.3 86 329.8 80 316.5V291.9c0-30.2 10.2-58.7 27.9-81.5c12.9-15.5 29.6-28 49.2-35.7l157-61.7c8.2-3.2 17.5 .8 20.7 9s-.8 17.5-9 20.7l-157 61.7c-12.4 4.9-23.3 12.4-32.2 21.6l159.6 57.6c7.6 2.7 15.6 4.1 23.7 4.1s16.1-1.4 23.7-4.1L624.2 182.6c9.5-3.4 15.8-12.5 15.8-22.6s-6.3-19.1-15.8-22.6L343.7 36.1C336.1 33.4 328.1 32 320 32zM128 408c0 35.3 86 72 192 72s192-36.7 192-72L496.7 262.6 354.5 314c-11.1 4-22.8 6-34.5 6s-23.5-2-34.5-6L143.3 262.6 128 408z"/>
     <path id="fa-crown" d="M309 106c11.4-7 19-19.7 19-34c0-22.1-17.9-40-40-40s-40 17.9-40 40c0 14.4 7.6 27 19 34L209.7 220.6c-9.1 18.2-32.7 23.4-48.6 10.7L72 160c5-6.7 8-15 8-24c0-22.1-17.9-40-40-40S0 113.9 0 136s17.9 40 40 40c.2 0 .5 0 .7 0L86.4 427.4c5.5 30.4 32 52.6 63 52.6H426.6c30.9 0 57.4-22.1 63-52.6L535.3 176c.2 0 .5 0 .7 0c22.1 0 40-17.9 40-40s-17.9-40-40-40s-40 17.9-40 40c0 9 3 17.3 8 24l-89.1 71.3c-15.9 12.7-39.5 7.5-48.6-10.7L309 106z"/>
   </svg>
+  <!-- прочие иконки -->
   <svg class="hidden" style="position: fixed; top: 0; left: -99px; width: 0; height: 0" xmlns="http://www.w3.org/2000/svg">
     <symbol id="bi-megaphone-fill"><path d="M13 2.5a1.5 1.5 0 0 1 3 0v11a1.5 1.5 0 0 1-3 0zm-1 .724c-2.067.95-4.539 1.481-7 1.656v6.237a25 25 0 0 1 1.088.085c2.053.204 4.038.668 5.912 1.56zm-8 7.841V4.934c-.68.027-1.399.043-2.008.053A2.02 2.02 0 0 0 0 7v2c0 1.106.896 1.996 1.994 2.009l.496.008a64 64 0 0 1 1.51.048m1.39 1.081q.428.032.85.078l.253 1.69a1 1 0 0 1-.983 1.187h-.548a1 1 0 0 1-.916-.599l-1.314-2.48a66 66 0 0 1 1.692.064q.491.026.966.06"/></symbol>
     <symbol id="bi-envelope-plus-fill">
@@ -237,7 +224,41 @@
     <symbol id="bi-emoji-smile-fill"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16M7 6.5C7 7.328 6.552 8 6 8s-1-.672-1-1.5S5.448 5 6 5s1 .672 1 1.5M4.285 9.567a.5.5 0 0 1 .683.183A3.5 3.5 0 0 0 8 11.5a3.5 3.5 0 0 0 3.032-1.75.5.5 0 1 1 .866.5A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1-3.898-2.25.5.5 0 0 1 .183-.683M10 8c-.552 0-1-.672-1-1.5S9.448 5 10 5s1 .672 1 1.5S10.552 8 10 8"/></symbol>
     <symbol id="bi-arrow-right-circle-fill"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0M4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5z"/></symbol>
     <symbol id="bi-bell"><path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/></symbol>
-    <!-- <symbol id="bi-"></symbol> -->
+    <symbol id="bi-gear-fill"><path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/></symbol>
+    <symbol id="bi-x-circle-fill"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z"/></symbol>
+    <symbol id="bi-file-earmark-binary">
+      <path d="M7.05 11.885c0 1.415-.548 2.206-1.524 2.206C4.548 14.09 4 13.3 4 11.885c0-1.412.548-2.203 1.526-2.203.976 0 1.524.79 1.524 2.203m-1.524-1.612c-.542 0-.832.563-.832 1.612q0 .133.006.252l1.559-1.143c-.126-.474-.375-.72-.733-.72zm-.732 2.508c.126.472.372.718.732.718.54 0 .83-.563.83-1.614q0-.129-.006-.25zm6.061.624V14h-3v-.595h1.181V10.5h-.05l-1.136.747v-.688l1.19-.786h.69v3.633z"/>
+      <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+    </symbol>
+    <symbol id="bi-file-earmark-code">
+      <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+      <path d="M8.646 6.646a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L10.293 9 8.646 7.354a.5.5 0 0 1 0-.708m-1.292 0a.5.5 0 0 0-.708 0l-2 2a.5.5 0 0 0 0 .708l2 2a.5.5 0 0 0 .708-.708L5.707 9l1.647-1.646a.5.5 0 0 0 0-.708"/>
+    </symbol>
+    <symbol id="bi-file-earmark-image">
+      <path d="M6.502 7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/>
+      <path d="M14 14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zM4 1a1 1 0 0 0-1 1v10l2.224-2.224a.5.5 0 0 1 .61-.075L8 11l2.157-3.02a.5.5 0 0 1 .76-.063L13 10V4.5h-2A1.5 1.5 0 0 1 9.5 3V1z"/>
+    </symbol>
+    <symbol id="bi-file-earmark-pdf">
+      <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+      <path d="M4.603 14.087a.8.8 0 0 1-.438-.42c-.195-.388-.13-.776.08-1.102.198-.307.526-.568.897-.787a7.7 7.7 0 0 1 1.482-.645 20 20 0 0 0 1.062-2.227 7.3 7.3 0 0 1-.43-1.295c-.086-.4-.119-.796-.046-1.136.075-.354.274-.672.65-.823.192-.077.4-.12.602-.077a.7.7 0 0 1 .477.365c.088.164.12.356.127.538.007.188-.012.396-.047.614-.084.51-.27 1.134-.52 1.794a11 11 0 0 0 .98 1.686 5.8 5.8 0 0 1 1.334.05c.364.066.734.195.96.465.12.144.193.32.2.518.007.192-.047.382-.138.563a1.04 1.04 0 0 1-.354.416.86.86 0 0 1-.51.138c-.331-.014-.654-.196-.933-.417a5.7 5.7 0 0 1-.911-.95 11.7 11.7 0 0 0-1.997.406 11.3 11.3 0 0 1-1.02 1.51c-.292.35-.609.656-.927.787a.8.8 0 0 1-.58.029m1.379-1.901q-.25.115-.459.238c-.328.194-.541.383-.647.547-.094.145-.096.25-.04.361q.016.032.026.044l.035-.012c.137-.056.355-.235.635-.572a8 8 0 0 0 .45-.606m1.64-1.33a13 13 0 0 1 1.01-.193 12 12 0 0 1-.51-.858 21 21 0 0 1-.5 1.05zm2.446.45q.226.245.435.41c.24.19.407.253.498.256a.1.1 0 0 0 .07-.015.3.3 0 0 0 .094-.125.44.44 0 0 0 .059-.2.1.1 0 0 0-.026-.063c-.052-.062-.2-.152-.518-.209a4 4 0 0 0-.612-.053zM8.078 7.8a7 7 0 0 0 .2-.828q.046-.282.038-.465a.6.6 0 0 0-.032-.198.5.5 0 0 0-.145.04c-.087.035-.158.106-.196.283-.04.192-.03.469.046.822q.036.167.09.346z"/>
+    </symbol>
+    <symbol id="bi-file-earmark-richtext">
+      <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+      <path d="M4.5 12.5A.5.5 0 0 1 5 12h3a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5m0-2A.5.5 0 0 1 5 10h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5m1.639-3.708 1.33.886 1.854-1.855a.25.25 0 0 1 .289-.047l1.888.974V8.5a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5V8s1.54-1.274 1.639-1.208M6.25 6a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5"/>
+    </symbol>
+    <symbol id="bi-file-earmark-slides">
+      <path d="M5 6a.5.5 0 0 0-.496.438l-.5 4A.5.5 0 0 0 4.5 11h3v2.016c-.863.055-1.5.251-1.5.484 0 .276.895.5 2 .5s2-.224 2-.5c0-.233-.637-.429-1.5-.484V11h3a.5.5 0 0 0 .496-.562l-.5-4A.5.5 0 0 0 11 6zm2 3.78V7.22c0-.096.106-.156.19-.106l2.13 1.279a.125.125 0 0 1 0 .214l-2.13 1.28A.125.125 0 0 1 7 9.778z"/>
+      <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+    </symbol>
+    <symbol id="bi-file-earmark-spreadsheet"><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V9H3V2a1 1 0 0 1 1-1h5.5zM3 12v-2h2v2zm0 1h2v2H4a1 1 0 0 1-1-1zm3 2v-2h3v2zm4 0v-2h3v1a1 1 0 0 1-1 1zm3-3h-3v-2h3zm-7 0v-2h3v2z"/></symbol>
+    <symbol id="bi-file-earmark-text">
+      <path d="M5.5 7a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1zM5 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5"/>
+      <path d="M9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5zm0 1v2A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z"/>
+    </symbol>
+    <symbol id="bi-file-earmark-zip">
+      <path d="M5 7.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v.938l.4 1.599a1 1 0 0 1-.416 1.074l-.93.62a1 1 0 0 1-1.11 0l-.929-.62a1 1 0 0 1-.415-1.074L5 8.438zm2 0H6v.938a1 1 0 0 1-.03.243l-.4 1.598.93.62.929-.62-.4-1.598A1 1 0 0 1 7 8.438z"/>
+      <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1h-2v1h-1v1h1v1h-1v1h1v1H6V5H5V4h1V3H5V2h1V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+    </symbol>
   </svg>
 
   <!-- шаблоны некоторых элементов -->
@@ -260,14 +281,12 @@
       <!-- еще один дропдаун с инструментами -->
       <div class="message-manage dropdown no-arrow">
         <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear-fill" viewBox="0 0 16 16">
-            <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
-          </svg>
+          <svg width="16" height="16" class="bi" viewBox="0 0 16 16"><use href="#bi-gear-fill"></use></svg>
         </button>
         <ul class="dropdown-menu">
-          <li><button class="dropdown-item" data-act="reply" type="button" disabled>Ответить</button></li>
+          <li><button class="dropdown-item" data-act="reply" type="button">Ответить</button></li>
           <li><button class="dropdown-item" data-act="edit" type="button">Изменить</button></li>
-          <li><button class="dropdown-item" data-act="pin" type="button" disabled>Закрепить</button></li>
+          <li><button class="dropdown-item" data-act="pin" type="button">Закрепить</button></li>
           <li><button class="dropdown-item text-danger" data-act="delete" type="button">Удалить</button></li>
         </ul>
       </div>
@@ -278,7 +297,19 @@
       </div>
       <div class="message-content">
         <div class="message-text"></div>
-        <div class="attachments"></div> <!-- todo: контейнер для вложений -->
+        <div class="attachments accordion">
+          <div class="accordion-item">
+            <p class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#attachments-list">
+                <svg width="16" height="16" class="bi" viewBox="0 0 16 16"><use href="#bi-paperclip"></use></svg>
+                <span></span>
+              </button>
+            </p>
+            <div id="attachments-list" class="accordion-collapse collapse">
+              <ul class="accordion-body"></ul>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </template>
@@ -306,17 +337,28 @@
     <span class="dropdown no-arrow user-name">
       <strong class="dropdown-toggle"></strong>
       <ul class="dropdown-menu">
-        <li><a class="dropdown-item" href="#">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-at" viewBox="0 0 16 16">
-            <path d="M13.106 7.222c0-2.967-2.249-5.032-5.482-5.032-3.35 0-5.646 2.318-5.646 5.702 0 3.493 2.235 5.708 5.762 5.708.862 0 1.689-.123 2.304-.335v-.862c-.43.199-1.354.328-2.29.328-2.926 0-4.813-1.88-4.813-4.798 0-2.844 1.921-4.881 4.594-4.881 2.735 0 4.608 1.688 4.608 4.156 0 1.682-.554 2.769-1.416 2.769-.492 0-.772-.28-.772-.76V5.206H8.923v.834h-.11c-.266-.595-.881-.964-1.6-.964-1.4 0-2.378 1.162-2.378 2.823 0 1.737.957 2.906 2.379 2.906.8 0 1.415-.39 1.709-1.087h.11c.081.67.703 1.148 1.503 1.148 1.572 0 2.57-1.415 2.57-3.643zm-7.177.704c0-1.197.54-1.907 1.456-1.907.93 0 1.524.738 1.524 1.907S8.308 9.84 7.371 9.84c-.895 0-1.442-.725-1.442-1.914"/>
-          </svg>
-          Профиль
-        </a></li>
-        <li><a class="dropdown-item" href="#">Личные сообщения</a></li>
+        <li><a class="dropdown-item" href="#">Профиль</a></li>
         <li><a class="dropdown-item" href="#">Упомянуть</a></li>
       </ul>
     </span>
     <span class="user-group"></span>
+  </template>
+  <template id="tem-attachment">
+    <div class="ag-entry">
+      <div class="ag-entry__preview">
+        <svg width="24" height="24" class="bi" viewBox="0 0 16 16"></svg>
+      </div>
+      <div class="ag-entry__info">
+        <span class="ag-entry__info-title"></span>
+        <span class="ag-entry__info-size"></span>
+      </div>
+      <div class="ag-entry__action">
+        <span class="ag-entry__action-status"></span>
+        <button class="btn btn-link ag-entry__action-delete">
+          <svg width="16" height="16" class="bi" viewBox="0 0 16 16"><use href="#bi-x-circle-fill"></use></svg>
+        </button>
+      </div>
+    </div>
   </template>
 </body>
 </html>

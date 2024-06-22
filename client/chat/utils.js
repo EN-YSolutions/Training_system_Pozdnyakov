@@ -95,10 +95,11 @@ export function getShortNum(x) {
 }
 
 /**
- * Прокручивает канал до последнего сообщения
+ * Прокручивает контейнер до упора вниз
+ * @param {string} selector селектор контейнера
  */
-export function scrollToBottom() {
-  const _c = document.querySelector('.contents-main')
+export function scrollToBottom(selector) {
+  const _c = document.querySelector(selector)
   _c.scrollTo(0, _c.scrollHeight)
 }
 

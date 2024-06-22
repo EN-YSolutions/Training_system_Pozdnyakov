@@ -34,10 +34,44 @@ import './types.js' // типы
   // готовим парсер маркдауна и сочетания клавич
   const marked = new Marked()
   marked.use({
-    // этот фрагмент делает "вжух", и все картинки с html превращаются в тыкву
     extensions: [
+      // этот фрагмент делает "вжух", и все картинки с html превращаются в тыкву
       { name: 'image', renderer(token) { return token.raw.replace(token.href, match => `<a href="${match}">${match}</a>`) } },
       { name: 'html', renderer(token) { return token.raw.replace(/[<>]/g, match => ({'<':'&lt;','>':'&gt;'}[match])) } },
+      // рендерим упоминания
+      {
+        name: 'mention',
+        level: 'inline',
+        start(src) { return src.match(/(^|[ -\/:-@\[-`\{-~])@/)?.index },
+        tokenizer(src, tokens) {
+          const match = src.match(/^@\w+\b/)
+          if (match) return {
+            type: 'mention',
+            raw: match[0],
+            target: match[0].slice(1)
+          }
+        },
+        renderer(token) {
+          return `<span class="mention" data-target="${token.target}">${token.raw}</span>`
+        }
+      },
+      // и ответы на сообщения
+      {
+        name: 'reply',
+        level: 'block',
+        start(src) { return src.match(/^->/?.index) },
+        tokenizer(src, tokens) {
+          const match = src.match(/^->\s*(\d+)(?:\n|$)/)
+          if (match) return {
+            type: 'reply',
+            raw: match[0],
+            target: match[1]
+          }
+        },
+        renderer(token) {
+          return `<div class="reply-link">В ответ на сообщение <a href="#" class="btn-link" type="button" data-target="${token.target}">#${token.target}</a>:</div>`
+        }
+      }
     ]
   })
   const MARKUP_BINDS = {
@@ -74,11 +108,12 @@ import './types.js' // типы
     const sel_start = input.selectionStart
     const sel_end = input.selectionEnd
     const val = input.value
+    const offset = emoji.length
 
     input.value = val.slice(0, sel_start) + emoji + val.slice(sel_end)
     input.focus()
-    input.selectionStart = sel_start
-    input.selectionEnd = sel_end
+    input.selectionStart = sel_start + offset
+    input.selectionEnd = sel_end + offset
   }
   // панель будет всплывать при нажатии кнопки в бутстраповском поповере
   const emoji_panel_popover = new bootstrap.Popover(document.querySelector('#emojis'), {
@@ -152,43 +187,135 @@ import './types.js' // типы
   })
 
   // обработчик drag&drop
-  // TODO: загрузка файлов на сервер и отображение миниатюр на клиенте
+  /** @type {Map<number, {id: string, filename: string}>} */ const ready_files = new Map()
+  /** @type {Map<number, FileList>} */ const queued_files = new Map()
   {
     const cont = document.querySelector('.contents')
     document.body.addEventListeners('dragenter dragover dragleave drop', Utils.preventDefaults)
     cont.addEventListeners('dragenter dragover dragleave drop', Utils.preventDefaults)
     cont.addEventListener('dragenter', () => {
-      if (!checkChannel()) return
+      if (!checkAvailability()) return
       cont.classList.add('dropping')
     })
     cont.addEventListeners('dragleave drop', e => {
-      if (!checkChannel()) return
+      if (!checkAvailability()) return
       if (!e.target.className.startsWith('contents')) return
       cont.classList.remove('dropping')
     })
     cont.addEventListeners('dragend drop', handleFiles)
     document.querySelector('#attachments-input').addEventListener('change', handleFiles)
 
-    function checkChannel() { return document.querySelector('.channel.selected') !== null }
-    function handleFiles(event) {
-      if (!checkChannel()) return
-      const dataurls = []
-      /** @type {FileList}*/ const files = (event instanceof DragEvent ? event.dataTransfer.files : event.target.files)
-      for (const file of files) {
-
-        // if (file.type.match(/^image\//)) {}
-        // const reader = new FileReader()
-        // reader.addEventListener('load', event => {
-        //   const url = event.target.result
-        //   dataurls.push({ name: makeUUID() + file.name.match(/\.\w+$/), type: file.type, url })
-        // })
-        // reader.readAsDataURL(file)
+    function checkAvailability() {
+      return document.querySelector('.channel.selected') !== null &&
+        !document.querySelector('#message-input').hasAttribute('data-edit-id')
+    }
+    function encodeFile(file) {
+      let code = 0
+      for (let i = 0; i < file.name.length; i++) {
+        code += file.name.codePointAt(i) ^ i
       }
-      const timer = setInterval(() => {
-        if (dataurls.length !== files.length) return
-        console.log(dataurls)
-        clearInterval(timer)
-      }, 1000)
+      code *= file.size
+      code ^= file.lastModified
+      console.log(code)
+      return code
+    }
+    function checkFile(file) {
+      const allowed = [/^image\//, /^application\//, /^text\//]
+      if (file.size > 10 * 2 ** 20) return 1
+      for (const pattern of allowed) {
+        if (pattern.test(file.type)) return 0
+      }
+      return 2
+    }
+    function getFileSize(bytes) {
+      const formatter = new Intl.NumberFormat('ru', { maximumFractionDigits: 1 })
+      if (bytes >= 2 ** 20) return `${formatter.format(bytes / 2 ** 20)} МиБ`
+      else if (bytes >= 2 ** 10) return `${formatter.format(bytes / 2 ** 10)} КиБ`
+      else return `${formatter.format(bytes)} Б`
+    }
+    function getFileIcon(mime) {
+      let name = 'bi-file-earmark-'
+      if (mime.match(/(spread)?sheet$/)) name += 'spreadsheet'
+      else if (mime.match(/presentation$/)) name += 'slides'
+      else if (mime.match(/(document|text)$/)) name += 'richtext'
+      else if (mime.match(/(gzip|tar|rar|zip|compressed)$/)) name += 'zip'
+      else if (mime === 'application/pdf') name += 'pdf'
+      else if (mime === 'text/plain') name += 'text'
+      else if (mime.match(/^image\//)) name += 'image'
+      else if (mime.match(/^(application|text)\//)) name += 'code'
+      else name += 'binary'
+      return name
+    }
+    function drawFilesList(files) {
+      for (const file of files) {
+        const test = checkFile(file)
+        const code = encodeFile(file)
+        if (queued_files.has(code)) continue
+        if (test > 0) continue
+        queued_files.set(code, file)
+
+        const tem = document.querySelector('#tem-attachment').cloneNode(true).content
+        const cont = tem.querySelector('.ag-entry')
+        cont.setAttribute('data-code', code)
+        tem.querySelector('.ag-entry__preview svg').innerHTML = `<use href="#${getFileIcon(file.type)}"></use>`
+        tem.querySelector('.ag-entry__info-title').innerText = getFileName(file.name)
+        tem.querySelector('.ag-entry__info-size').innerText = `(${getFileSize(file.size)})`
+        tem.querySelector('.ag-entry__action-status').innerText = 'В очереди'
+        tem.querySelector('.ag-entry__action-delete').addEventListener('click', () => {
+          if (queued_files.has(code)) queued_files.delete(code)
+          if (ready_files.has(code)) {
+            fetch('/api/attach', {
+              method: 'delete',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ id: ready_files.get(code).id }) 
+            })
+            ready_files.delete(code)
+          }
+          cont.remove()
+        })
+        document.querySelector('.attachments-gallery').append(tem)
+      }
+      Utils.scrollToBottom('.attachments-gallery')
+    }
+    async function uploadFiles() {
+      const btn = document.querySelector('#message-send')
+      btn.setAttribute('disabled', '')
+      for (const [code, file] of queued_files) {
+        const entry = document.querySelector(`.ag-entry[data-code="${code}"]`)
+        const status = entry.querySelector('.ag-entry__action-status')
+        if (!entry) continue
+
+        const xhr = new XMLHttpRequest()
+        const fd = new FormData()
+        fd.append('file', file)
+        xhr.open('post', '/api/attach')
+        xhr.upload.addEventListener('loadstart', () => {
+          status.innerText = `Подготовка`
+        })
+        xhr.upload.addEventListener('progress', ({ loaded, total, lengthComputable }) => {
+          status.innerText = `Загрузка ${lengthComputable ? `(${Math.floor(loaded / total * 100)}%)` : ''}`
+        })
+        xhr.send(fd)
+        await new Promise(res => {
+          xhr.addEventListener('load', () => {
+            const { id, file_name } = JSON.parse(xhr.response)
+            status.innerText = 'Готово'
+            entry.querySelector('.ag-entry__info-title').innerText = getFileName(file_name)
+            entry.setAttribute('data-id', id)
+            queued_files.delete(code)
+            ready_files.set(code, { id, filename: file_name })
+            res()
+          })
+        })
+      }
+      btn.removeAttribute('disabled')
+    }
+
+    async function handleFiles(event) {
+      if (!checkAvailability()) return
+      const files = event instanceof DragEvent ? event.dataTransfer.files : event.target.files
+      drawFilesList(files)
+      uploadFiles()
     }
   }
 
@@ -230,6 +357,7 @@ import './types.js' // типы
     }))
 
     document.querySelector('button[data-bs-target="#modal-new-channel"]')?.removeAttribute('disabled')
+    document.querySelector('button[data-bs-target="#modal-new-dm"]')?.removeAttribute('disabled')
 
     // обработка всех событий
     ws.onmessage = event => {
@@ -249,7 +377,7 @@ import './types.js' // типы
             wrp.append(badge)
           }
           buildMessagesList(data.messages)
-          Utils.scrollToBottom()
+          Utils.scrollToBottom('.contents-main')
 
           const current = document.querySelector('.channel.selected')
           if (typeof current !== null) {
@@ -291,6 +419,18 @@ import './types.js' // типы
           document.querySelector(`.message[data-id="${data.id}"]`).classList.add('editing')
           break
         }
+        case 'PREVIEW_MESSAGE': {
+          const modal = document.querySelector('#modal-message')
+          const bs_modal = bootstrap.Modal.getOrCreateInstance(modal)
+          const body = modal.querySelector('.modal-body')
+          const msg = makeMessage(data)
+          msg.classList.add('preview')
+          msg.querySelector('.message-manage').remove()
+          body.innerHTML = ''
+          body.append(msg)
+          bs_modal.show()
+          break
+        }
         case 'NEW_MESSAGE': { // новое чужое сообщение
           const channel = document.querySelector(`.channel[data-id="${data.channel}"]`)
           if (channel) { // обновляем миниатюру канала
@@ -310,7 +450,7 @@ import './types.js' // типы
               wrp.querySelector('.badge').remove()
             wrp.append(makeMessage(data))
             channel.querySelector('.badge').innerText = ''
-            Utils.scrollToBottom()
+            Utils.scrollToBottom('.contents-main')
           }
           break
         }
@@ -347,7 +487,7 @@ import './types.js' // типы
             msg.classList.remove('pending')
             msg.classList.add('edited')
             msg.querySelector('.message-text').innerHTML = parseMarkup(data.text)
-            msg.querySelector('.message-manage [data-act="edit"]').removeAttribute('disabled')
+            msg.querySelector('.message-manage [data-act="edit"]')?.removeAttribute('disabled')
           }
           const channel = document.querySelector(`.channel[data-msg-id="${data.target}"]`)
           if (channel) { // обновляем миниатюру
@@ -438,7 +578,6 @@ import './types.js' // типы
   })
 
   // помечаем сообщения прочитанными при скролле до конца вниз
-  // todo: отмечать прочитанные, даже если скролла нет
   document.querySelector('.contents-main').addEventListener('scroll', event => {
     const _ = event.currentTarget
     const channel_id = document.querySelector('.channel.selected')?.getAttribute('data-id')
@@ -551,7 +690,7 @@ import './types.js' // типы
       ? Utils.timeago(Date.now() - new Date(data.last_at).getTime())
       : ''
     tem.querySelector('.last-author').innerText = data.last_author_name ?? ''
-    tem.querySelector('.last-msg').innerHTML = parseMarkup(data.last_content || 'Сообщений нет', true)
+    tem.querySelector('.last-msg').innerHTML = parseMarkup(data.last_id ? (data.last_content || 'Без текста') : 'Сообщений нет', true)
     if (+data.unread_count) tem.querySelector('.badge').innerText = Utils.getShortNum(data.unread_count)
 
     // вешаем хандлер на клик, чтобы открывать выбранный канал
@@ -639,7 +778,30 @@ import './types.js' // типы
     tem.querySelector('time').innerText = Utils.getMessageStamp(data.created_at)
     text.innerHTML = content
     Prism.highlightAllUnder(text)
-    if (text.querySelector(`.mention[data-username="${self.login}"]`)) cont.classList.add('mentioned')
+    if (text.querySelector(`.mention[data-target="${self.login}"]`)) cont.classList.add('mentioned')
+
+    if (!data.attachments.length) tem.querySelector('.attachments').remove()
+    else {
+      const wrp = tem.querySelector('.attachments')
+      const aid = 'attachments-' + data.id
+      wrp.id = aid
+      wrp.querySelector('.accordion-collapse').setAttribute('data-bs-parent', '#' + aid)
+      wrp.querySelector('.accordion-collapse').id = aid + '-list'
+      wrp.querySelector('.accordion-button').setAttribute('data-bs-target', `#${aid}-list`)
+      wrp.querySelector('.accordion-button span').innerText =
+        Utils.xplural(data.attachments.length, ['вложение', 'вложения', 'вложений'])
+
+      for (const attachment of data.attachments) {
+        const { filename } = attachment
+        const li = document.createElement('li')
+        const a = document.createElement('a')
+        a.href = `/attachments/${filename[0]}/${filename.slice(0, 2)}/${filename}`
+        a.target = '_blank'
+        a.innerText = getFileName(filename, 25)
+        li.append(a)
+        wrp.querySelector('.accordion-body').append(li)
+      }
+    }
 
     ;(function applyRights() {
       if (self.role !== 'student') return
@@ -649,27 +811,47 @@ import './types.js' // типы
       tem.querySelector('[data-act="delete"]').remove()
     })()
 
-    tem.querySelector('[data-act="edit"]')?.addEventListener('click', event => {
-      event.currentTarget.setAttribute('disabled', '')
+    tem.querySelector('[data-act="edit"]')?.addEventListener('click', function() {
+      this.setAttribute('disabled', '')
       ws.send(JSON.stringify({
         event: 'RAW_MESSAGE',
-        message: event.currentTarget.takeNthParent(4).getAttribute('data-id')
+        message: this.takeNthParent(4).getAttribute('data-id')
       }))
     })
-    tem.querySelector('[data-act="delete"]')?.addEventListener('click', event => {
-      event.currentTarget.setAttribute('disabled', '')
+    tem.querySelector('[data-act="delete"]')?.addEventListener('click', function() {
+      this.setAttribute('disabled', '')
       ws.send(JSON.stringify({
         event: 'DELETE',
         type: 'MESSAGE',
-        target: +event.currentTarget.takeNthParent(4).getAttribute('data-id')
+        target: +this.takeNthParent(4).getAttribute('data-id')
+      }))
+    })
+    tem.querySelector('[data-act="pin"]')?.addEventListener('click', function() {
+      this.setAttribute('disabled', '')
+      ws.send(JSON.stringify({
+        event: 'PIN',
+        target: +this.takeNthParent(4).getAttribute('data-id')
+      }))
+    })
+    tem.querySelector('[data-act="reply"]')?.addEventListener('click', function() {
+      const input = document.querySelector('#message-input')
+      input.value = `-> ${this.takeNthParent(4).getAttribute('data-id')}\n${input.value}`
+      input.focus()
+    })
+    tem.querySelector('.reply-link a')?.addEventListener('click', function(event) {
+      event.preventDefault()
+      ws.send(JSON.stringify({
+        event: 'PREVIEW_MESSAGE',
+        target: +this.getAttribute('data-target')
       }))
     })
 
     return cont
   }
   function publishMessage() {
+    if (queued_files.size) return
     const input = document.querySelector('#message-input')
-    if (!input.value.length) return
+    if (!input.value.length && !ready_files.size) return
     const _c = document.querySelector('.messages-wrapper')
     const text = input.value.slice(0, 1024)
     if (input.hasAttribute('data-edit-id')) { // редактирование
@@ -685,40 +867,36 @@ import './types.js' // типы
       msg.classList.remove('editing')
       msg.classList.add('pending')
     } else { // отправка
+      const attachments = Array.from(ready_files.values())
       const ticket = 'x'.repeat(16).replace(/x/g, () => Math.floor(Math.random() * 36).toString(36))
       ws.send(JSON.stringify({
         event: 'MESSAGE',
         channel_id: document.querySelector('.channel.selected').getAttribute('data-id'),
         text,
-        ticket
+        ticket,
+        attachments
       }))
       const msg = makeMessage({
         author: self.id,
         avatar: self.avatar,
         name: self.name,
         created_at: Date.now(),
-        contents: text
+        contents: text,
+        attachments
       })
       msg.classList.add('pending')
       msg.setAttribute('data-ticket', ticket)
       _c.append(msg)
-      Utils.scrollToBottom()
+      Utils.scrollToBottom('.contents-main')
       if (_c.querySelector('.badge')) _c.querySelector('.badge').remove()
     }
+    ready_files.clear()
+    document.querySelectorAll('.ag-entry').forEach(e => e.remove())
     input.value = ''
     input.focus()
   }
   function parseMarkup(text, inline = false) {
     let markup = inline ? marked.parseInline(text) : marked.parse(text)
-    if (!inline) {
-      markup = markup.replace(/@\w+/ig, match => {
-        const span = document.createElement('span')
-        span.className = 'mention'
-        span.innerText = match
-        span.setAttribute('data-username', match.slice(1))
-        return span.outerHTML
-      })
-    }
     return DOMPurify.sanitize(markup)
   }
   function addMarkup(type) {
@@ -742,15 +920,11 @@ import './types.js' // типы
     field.selectionStart = sel_start + offset
     field.selectionEnd = sel_end + offset
   }
-  function makeUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxx'.replace(/x/g, () => Math.floor(Math.random() * 16).toString(16))
-  }
-  function getFileIcon(ext) {
-    let name = 'bi-file-earmark-'
-    if (name.match(/^image\//)) name += 'image'
-    else if (name.match(/^audio\//)) name += 'music'
-    else if (name.match(/^video\//)) name += 'play'
-    else if (name.match(/spreadsheet/)) name += 'spreadsheet'
-    else if (name.match(/presentation/)) name += 'presentation'
+  function getFileName(name, limit = 10) {
+    const _p = name.split('.')
+    const ext = _p.length >= 2 ? '.' + _p.pop() : ''
+    const fname = _p.join('.')
+    if (fname.length > limit) return `${fname.slice(0, limit)}… ${ext}`
+    return fname + ext
   }
 })();

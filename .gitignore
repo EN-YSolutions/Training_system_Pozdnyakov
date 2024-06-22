@@ -7,6 +7,9 @@ cert
 client/helpers/external
 client/helpers/NotoColorEmoji.ttf
 
+# хранилище вложенных файлов тоже не нужно
+server/attachments
+
 # различные тесты
 test
 test.*

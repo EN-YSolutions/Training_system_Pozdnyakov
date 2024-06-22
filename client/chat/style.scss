@@ -249,15 +249,22 @@ main.container-fluid {
   &__info {
     display: flex;
     gap: .25em;
+    align-items: flex-end;
 
-    span:first-child {
+    &-title {
       font-weight: bold;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    &-size {
+      font-size: .8em;
+    }
   }
   &__action {
     margin-inline-start: auto;
+    display: flex;
+    align-items: center;
+    gap: .25em;
 
     .btn {
       color: var(--bs-red);
@@ -281,8 +288,16 @@ main.container-fluid {
     opacity: .25;
     animation: pending-pulse 5s linear infinite normal;
   }
+  &.mentioned {
+    background-color: rgba(var(--bs-primary-rgb), .1);
+  }
   &.editing {
     background: rgba(var(--bs-warning-rgb), .1);
+  }
+  &.preview {
+    border: none;
+    margin: 0;
+    padding-block: 0;
   }
 
   // самое важное здесь - транзишны
@@ -300,6 +315,7 @@ main.container-fluid {
     transition: opacity $manage-duration $manage-delay;
   }
 
+
   &.edited &-head:after { // метка измененного сообщения
     content: '(изм.)';
     font-style: italic;
@@ -311,9 +327,6 @@ main.container-fluid {
     opacity: .6;
   }
 
-  &.mentioned {
-    background-color: rgba(var(--bs-primary-rgb), .1);
-  }
 
   &-text {
     .mention {
@@ -331,8 +344,30 @@ main.container-fluid {
       }
     }
 
-    p:last-child {
+    *:last-child {
       margin: 0;
+    }
+  }
+
+  .attachments {
+    --bs-accordion-border-radius: 0;
+    margin-block-start: .5rem;
+
+    .accordion-button {
+      padding: .5rem 1rem .5rem .5rem;
+
+      .bi {
+        margin-inline-end: .25em;
+      }
+      use {
+        rotate: 45deg;
+        transform-origin: center;
+      }
+    }
+    .accordion-body {
+      list-style-type: none;
+      padding: .5rem;
+      margin-block-end: 0;
     }
   }
 }
@@ -427,6 +462,15 @@ main.container-fluid {
   vertical-align: text-top;
   line-height: 1;
   margin-inline-start: .15em;
+}
+
+.reply-link, blockquote {
+  border-inline-start: 4px var(--bs-primary) solid;
+  padding-inline-start: .25em;
+  margin-block-end: 0;
+}
+.reply-link {
+  font-style: italic;
 }
 
 .hidden {

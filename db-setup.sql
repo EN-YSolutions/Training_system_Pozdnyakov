@@ -254,6 +254,47 @@ begin
 	-- сортируем и возвращаем данные
 	return query execute format('select * from %I order by last_at desc, title asc;', TABLE_NAME);
 end; $$;
+
+-- для уведомлений
+create or replace function send_notifs(
+	_self uuid,
+	_channel uuid,
+	_logins varchar(32)[]
+) returns table (
+	title char(17),
+	description text,
+	created_at timestamptz,
+	targets uuid[]
+)
+language plpgsql
+as $$
+declare
+	CA constant timestamptz = current_timestamp;
+	TT constant char(17) = 'Упоминание в чате';
+	mf text = 'Пользователь %s упомянул вас в канале "%s".';
+
+	sf users."name"%type;
+	ch channels.title%type;
+	lg users.login%type;
+	cid users.id%type;
+	us uuid[] = array[]::uuid[];
+begin
+	select "name" into sf from users where id = _self;
+	select channels.title into ch from channels where id = _channel;
+
+	mf = format(mf, sf, ch);
+
+	foreach lg in array _logins loop
+		select id into cid from users where login = lg;
+		if cid is null then continue; end if;
+		insert into notifications (user_id, title, description, "date") values (
+			cid, TT, mf, CA
+		);
+		us = array_append(us, cid);
+	end loop;
+
+	return query select TT, mf, CA, us;
+end; $$;
 -- #endregion
 
 -- раздаем разрешения

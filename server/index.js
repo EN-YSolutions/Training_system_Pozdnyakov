@@ -1,7 +1,8 @@
 import dotenv from 'dotenv'
-import { readFileSync, statSync, existsSync } from 'fs'
+import { readFileSync, existsSync, mkdirSync, rmSync } from 'fs'
+import { exec } from 'child_process'
 import { resolve as resolvePath } from 'path'
-import { createServer } from 'https'
+import { createServer } from 'http'
 import { WebSocketServer } from 'ws'
 import express from 'express'
 import { QueryTypes, Sequelize } from 'sequelize'
@@ -9,7 +10,7 @@ import * as sass from 'sass'
 import bodyParser from 'body-parser'
 import cookieParser from 'cookie-parser'
 import compression from 'compression'
-import { createHash } from 'crypto'
+import { createHash, createHmac } from 'crypto'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import Identicon from 'identicon.js'
@@ -24,18 +25,33 @@ const PORT = process.env.PORT
 
 // поднимаем сервер
 const app = express()
-const server = createServer({
-  cert: readFileSync(process.env.SSL_CRT),
-  key: readFileSync(process.env.SSL_KEY)
-}, app)
+const server = createServer(app)
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(compression())
 server.listen(PORT, HOST, () => console.log(`Listening on local port ${PORT}`))
 
+const UPLOAD_BASEPATH = './attachments'
 // готовим обработчик загружаемых файлов
-const uploader = multer({ dest: './attachments' })
+const uploader = multer({
+  storage: new multer.diskStorage({
+    destination(req, file, cb) {
+      const hash = createHmac('sha256', Date.now().toString()).update(file.originalname).digest('hex')
+      const path = resolvePath(`${UPLOAD_BASEPATH}/${hash[0]}/${hash.slice(0, 2)}`)
+      file.hash = hash
+      if (!existsSync(path)) mkdirSync(path, { recursive: true })
+      cb(null, path)
+    }, 
+    filename(req, file, cb) {
+      const ext = file.originalname.match(/\.\w+$/)?.[0] ?? ''
+      cb(null, file.hash + ext)
+    }
+  }),
+  limits: {
+    files: 10
+  }
+})
 
 // подключаемся к базе
 const db = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
@@ -159,15 +175,52 @@ app.get('/api/@me', async (req, res) => {
   })
 })
 
-// todo: загрузка файлов
-app.put('/api/attach', uploader.array('files'), async (req, res) => {
+app.post('/api/attach', uploader.single('file'), async (req, res) => {
   if (typeof req.cookies['auth-token'] === 'undefined') return res.sendStatus(401)
 
   const token_data = await Misc.resolveJWT(req.cookies['auth-token'])
   if (token_data === null) return res.status(401).send({ message: 'Токен имеет недействительную подпись!' })
   if (Date.now() > token_data.exp * 1000) return res.status(401).send({ message: 'Срок действия токена истек!' })
 
-  res.sendStatus(501)
+  const { filename } = req.file
+  const data = (await db.query('insert into attachments (type, file_name) values (?) returning id, file_name;', {
+    replacements: [['file', filename]],
+    type: QueryTypes.SELECT
+  }))[0]
+
+  res.status(200).send({ ...data })
+})
+app.delete('/api/attach', async (req, res) => {
+  if (typeof req.cookies['auth-token'] === 'undefined') return res.sendStatus(401)
+
+  const token_data = await Misc.resolveJWT(req.cookies['auth-token'])
+  if (token_data === null) return res.status(401).send({ message: 'Токен имеет недействительную подпись!' })
+  if (Date.now() > token_data.exp * 1000) return res.status(401).send({ message: 'Срок действия токена истек!' })
+
+  const data = (await db.query('delete from attachments where id = ? returning file_name;', {
+    replacements: [req.body.id],
+    type: QueryTypes.DELETE
+  }))[0]
+  const f = data?.file_name
+  if (typeof f !== 'undefined') {
+    rmSync(`${UPLOAD_BASEPATH}/${f[0]}/${f.slice(0, 2)}/${f}`)
+    exec(`find ${resolvePath(UPLOAD_BASEPATH)} -type d -empty -delete`)
+  }
+  res.sendStatus(200)
+})
+
+app.get('/api/notifs', async (req, res) => {
+  if (typeof req.cookies['auth-token'] === 'undefined') return res.sendStatus(401)
+
+  const token_data = await Misc.resolveJWT(req.cookies['auth-token'])
+  if (token_data === null) return res.status(401).send({ message: 'Токен имеет недействительную подпись!' })
+  if (Date.now() > token_data.exp * 1000) return res.status(401).send({ message: 'Срок действия токена истек!' })
+
+  const data = await db.query('select * from notifications where user_id = ? order by created_at desc limit 5;', {
+    replacements: [token_data.sub],
+    type: QueryTypes.SELECT
+  })
+  res.status(200).send(data)
 })
 
 // генерим иконки на сервере, чтобы этим не занимался клиент
@@ -245,9 +298,24 @@ ws.on('connection', con => {
       }
       case 'CHANNEL': { // пользователь открыл канал
         // собираем сообщения
-        const messages = await db.query(`select *, (select "name" from users where id = author), encode(sha256(convert_to(author::text, 'UTF-8')), 'hex') avatar from messages where channel = ? order by created_at desc, id desc limit 50;`, {
+        const messages = await db.query([
+          `select msg.*,`,
+            `(select "name" from users where id = author),`,
+            `id2hash(author) avatar,`,
+            `array_agg(array[atc.id::varchar, atc.file_name]) attachments`,
+          `from messages msg`,
+          `left join attachments atc on atc.message = msg.id`,
+          `where channel = ?`,
+          `group by msg.id`,
+          `order by msg.created_at desc, msg.id desc limit 50;`
+        ].join(' '), {
           replacements: [data.channel_id],
           type: QueryTypes.SELECT
+        })
+        messages.forEach(e => {
+          const a = e.attachments
+          if (a.length === 1 && a[0].every(e => e === null)) e.attachments = []
+          else e.attachments = a.map(m => ({ id: m[0], filename: m[1] }))
         })
         // разворачиваем сообщения, чтобы новые были внизу
         // почему бы не поменять desc на asc в запросе? -
@@ -264,26 +332,47 @@ ws.on('connection', con => {
           replacements: [[data.channel_id, con._USERID, data.text]],
           type: QueryTypes.INSERT
         }))[0][0]
-        // одним ивентом возвращаем айди и таймштамп сообщения пользователю
+        const mentions = Array.from(data.text.matchAll(/(?:^|[ -\/:-@\[-`\{-~])@(\w+)\b/g)).map(m => m[1])
+        console.log('mentions', mentions)
+        if (mentions.length) {
+          const notif = (await db.query('select * from send_notifs(?, ?, array[?]);', {
+            replacements: [con._USERID, data.channel_id, mentions],
+            type: QueryTypes.SELECT
+          }))[0]
+          const targets = notif.targets
+          delete notif.targets
+          for (const client of ws.clients) {
+            if (!targets.includes(client._USERID)) continue
+            client.send(JSON.stringify({
+              event: 'NOTIFICATION',
+              ...notif
+            }))
+          }
+        }
+
+        if (data.attachments.length) db.query('update attachments set message = ? where id in (?);', {
+          replacements: [message.id, data.attachments.map(m => m.id)],
+          type: QueryTypes.INSERT
+        })
+
+        // тем же ивентом подтверждаем пользователю отправку
         // (оно у него висит в пендинге, не забываем)
         con.send(JSON.stringify({
           event: 'MESSAGE',
-          id: message.id,
-          created_at: message.created_at,
-          channel: data.channel_id,
-          contents: data.text,
-          ticket: data.ticket
+          ...data,
+          ...message
         }))
         // всем остальным рассылаем другой ивент, чтобы сообщение появилось в принципе
-        ;[...ws.clients].forEach(f => {
-          if (f._USERID === con._USERID) return // кроме автора, разумеется
-          f.send(JSON.stringify({
+        for (const client of ws.clients) {
+          if (client._USERID === con._USERID) continue // кроме автора, разумеется
+          client.send(JSON.stringify({
             event: 'NEW_MESSAGE',
             ...message,
             avatar: createHash('sha256').update(message.author).digest('hex'),
-            author: con._USERID
+            author: con._USERID,
+            attachments: data.attachments
           }))
-        })
+        }
         break
       }
       case 'RAW_MESSAGE': { // пользователь хочет изменить сообщение, и ему нужен исходный код
@@ -293,6 +382,29 @@ ws.on('connection', con => {
         }))[0]
         con.send(JSON.stringify({
           event: 'RAW_MESSAGE',
+          ...message
+        }))
+        break
+      }
+      case 'PREVIEW_MESSAGE': {
+        const message = (await db.query([
+          `select msg.*,`,
+            `(select "name" from users where id = author),`,
+            `id2hash(author) avatar,`,
+            `array_agg(array[atc.id::varchar, atc.file_name]) attachments`,
+          `from messages msg`,
+          `left join attachments atc on atc.message = msg.id`,
+          `where msg.id = ?`,
+          `group by msg.id;`
+        ].join(' '), {
+          replacements: [data.target],
+          type: QueryTypes.SELECT
+        }))[0]
+        if (message.attachments.length === 1 && message.attachments[0].every(e => e === null))
+          message.attachments = []
+        else message.attachments = message.attachments.map(m => ({ id: m[0], filename: m[1] }))
+        con.send(JSON.stringify({
+          event: 'PREVIEW_MESSAGE',
           ...message
         }))
         break
@@ -424,6 +536,9 @@ ws.on('connection', con => {
             user: con._USERID
           }))
         }
+        break
+      }
+      case 'PIN': {
         break
       }
     }
